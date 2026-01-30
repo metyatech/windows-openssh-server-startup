@@ -1,5 +1,5 @@
 <#PSScriptInfo
-.VERSION 0.3.1
+.VERSION 0.3.2
 .GUID d6e03cb4-a92f-4550-bdda-81093864c6a4
 .AUTHOR metyatech
 .COMPANYNAME metyatech
@@ -8,7 +8,7 @@
 .DESCRIPTION Stop Windows OpenSSH Server and verify shutdown.
 .LICENSEURI https://github.com/metyatech/windows-openssh-server-startup/blob/main/LICENSE
 .PROJECTURI https://github.com/metyatech/windows-openssh-server-startup
-.RELEASENOTES Bundle module scripts for PowerShell Gallery installs.
+.RELEASENOTES Improve elevation results and sudo diagnostics.
 #>
 #requires -Version 5.1
 [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]

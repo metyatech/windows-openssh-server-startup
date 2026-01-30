@@ -1,7 +1,7 @@
 Set-StrictMode -Version Latest
 
 function Get-OpenSshServerStopVersion {
-    '0.3.1'
+    '0.3.2'
 }
 
 function Get-OpenSshServerStopHelp {
@@ -277,15 +277,23 @@ function Invoke-OpenSshServerStop {
         $baseArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $scriptPath) + (Get-InvocationArgumentList -BoundParameters $invocationBoundParameters -ExcludeKeys @('Dependencies'))
 
         $usedSudo = $false
-        if (& $deps.GetCommand 'sudo') {
-            & $deps.RunSudo $exePath $baseArgs
-            if ($LASTEXITCODE -eq 0) {
+        $sudoCommand = & $deps.GetCommand 'sudo'
+        if ($sudoCommand) {
+            $sudoOutput = & $deps.RunSudo $exePath $baseArgs 2>&1
+            $sudoExitCode = $LASTEXITCODE
+            if ($sudoExitCode -eq 0) {
                 $usedSudo = $true
                 Register-Action -Action 'elevate' -Details 'Relaunched with sudo.'
                 Register-Warning -Id 'relaunching_elevated' -Message 'Elevated command launched via sudo.'
             } else {
-                Register-Warning -Id 'sudo_failed' -Message 'sudo is unavailable or failed; falling back to a new elevated window.'
+                $sudoMessage = "sudo detected at '$($sudoCommand.Source)' but failed with exit code $sudoExitCode."
+                if ($sudoOutput) {
+                    $sudoMessage = "$sudoMessage Output: $sudoOutput"
+                }
+                Register-Warning -Id 'sudo_failed' -Message $sudoMessage
             }
+        } else {
+            Register-Warning -Id 'sudo_not_found' -Message 'sudo was not found in PATH; falling back to a new elevated window.'
         }
 
         if (-not $usedSudo) {
@@ -296,6 +304,8 @@ function Invoke-OpenSshServerStop {
         }
 
         $script:ElevationRequested = $true
+        $result.status = 'pending'
+        $result.stopped = $false
         throw 'ElevationRestarted'
         return $true
     }

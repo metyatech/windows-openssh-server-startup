@@ -121,8 +121,9 @@ Describe 'Invoke-OpenSshServerStop' {
         It 'requests elevation when not elevated' {
             Mock Confirm-AutoFix { $true }
             $result = Invoke-OpenSshServerStop -Quiet -Dependencies $script:CurrentDependencies
-            $result.status | Should -Be 'success'
-            ($result.warnings | Select-Object -First 1).id | Should -Be 'relaunching_elevated'
+            $result.status | Should -Be 'pending'
+            $result.stopped | Should -BeFalse
+            ($result.warnings.id) | Should -Contain 'relaunching_elevated'
             $script:ElevateArgs | Should -Not -BeNullOrEmpty
         }
     }

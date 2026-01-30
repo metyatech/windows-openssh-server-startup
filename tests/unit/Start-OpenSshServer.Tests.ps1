@@ -115,7 +115,8 @@ Describe 'Invoke-OpenSshServerStartup' {
 
         It 'requests elevation when AutoFix requires admin' {
             $result = Invoke-OpenSshServerStartup -AutoFix -Quiet -Dependencies $script:CurrentDependencies
-            $result.status | Should -Be 'success'
+            $result.status | Should -Be 'pending'
+            $result.started | Should -BeFalse
             ($result.warnings.id) | Should -Contain 'autofix_requires_admin'
             ($result.warnings.id) | Should -Contain 'relaunching_elevated'
             $script:ElevateArgs | Should -Not -BeNullOrEmpty

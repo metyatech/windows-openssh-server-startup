@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.2 - 2026-01-30
+- Report pending status after elevation requests and improve sudo diagnostics.
+
 ## 0.3.1 - 2026-01-30
 - Include module private scripts in the published package.
 
