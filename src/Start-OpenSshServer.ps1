@@ -12,7 +12,8 @@ Usage:
   .\Start-OpenSshServer.ps1 [options]
 
 Options:
-  -AutoFix            Prompt to automatically resolve detected issues.
+  -AutoFix            Enable automatic remediation (default).
+  -NoAutoFix          Disable automatic remediation.
   -Yes                Skip confirmation prompts for AutoFix.
   -DryRun             Preview remediation actions without applying changes.
   -Port <int>         TCP port for sshd (default: 22).
@@ -107,6 +108,10 @@ $script:OpenSshStartupDependencies = @{
         param($ExePath, $ArgumentList)
         Start-Process -FilePath $ExePath -ArgumentList $ArgumentList -Verb RunAs | Out-Null
     }
+    RunSudo = {
+        param($ExePath, $ArgumentList)
+        & sudo -- $ExePath @ArgumentList
+    }
 }
 
 function Get-StartupResult {
@@ -138,6 +143,7 @@ function Invoke-OpenSshServerStartup {
     [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]
     param(
         [switch]$AutoFix,
+        [switch]$NoAutoFix,
         [Alias('Force')]
         [switch]$Yes,
         [switch]$DryRun,
@@ -178,6 +184,14 @@ function Invoke-OpenSshServerStartup {
     $result = Get-StartupResult
     $deps = if ($Dependencies) { $Dependencies } else { $script:OpenSshStartupDependencies }
     $isWindowsPlatform = [System.Environment]::OSVersion.Platform -eq 'Win32NT'
+
+    if (-not $PSBoundParameters.ContainsKey('AutoFix') -and -not $PSBoundParameters.ContainsKey('NoAutoFix')) {
+        $AutoFix = $true
+    }
+
+    if ($NoAutoFix) {
+        $AutoFix = $false
+    }
 
     $null = $AutoFix
     $null = $Yes
@@ -283,11 +297,27 @@ function Invoke-OpenSshServerStartup {
 
         $scriptPath = Join-Path (Split-Path $PSScriptRoot -Parent) 'Start-OpenSshServer.ps1'
         $exePath = if (& $deps.GetCommand 'pwsh') { 'pwsh' } else { 'powershell' }
-        $argList = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-NoExit', '-File', $scriptPath) + (Get-InvocationArgumentList -BoundParameters $invocationBoundParameters -ExcludeKeys @('Dependencies'))
+        $baseArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $scriptPath) + (Get-InvocationArgumentList -BoundParameters $invocationBoundParameters -ExcludeKeys @('Dependencies'))
 
-        & $deps.Elevate $exePath $argList
-        Register-Action -Action 'elevate' -Details 'Relaunched with elevation.'
-        Register-Warning -Id 'relaunching_elevated' -Message 'Elevated PowerShell launched to continue operation.'
+        $usedSudo = $false
+        if (& $deps.GetCommand 'sudo') {
+            & $deps.RunSudo $exePath $baseArgs
+            if ($LASTEXITCODE -eq 0) {
+                $usedSudo = $true
+                Register-Action -Action 'elevate' -Details 'Relaunched with sudo.'
+                Register-Warning -Id 'relaunching_elevated' -Message 'Elevated command launched via sudo.'
+            } else {
+                Register-Warning -Id 'sudo_failed' -Message 'sudo is unavailable or failed; falling back to a new elevated window.'
+            }
+        }
+
+        if (-not $usedSudo) {
+            $argList = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-NoExit', '-File', $scriptPath) + (Get-InvocationArgumentList -BoundParameters $invocationBoundParameters -ExcludeKeys @('Dependencies'))
+            & $deps.Elevate $exePath $argList
+            Register-Action -Action 'elevate' -Details 'Relaunched with elevation.'
+            Register-Warning -Id 'relaunching_elevated' -Message 'Opened a new elevated PowerShell window to continue operation.'
+        }
+
         $script:ElevationRequested = $true
         throw 'ElevationRestarted'
         return $true
@@ -318,7 +348,15 @@ function Invoke-OpenSshServerStartup {
 
             if ($AutoFix -and $Fix) {
                 if (-not (& $deps.IsAdmin)) {
-                    $null = Request-Elevation -Reason 'apply automatic remediation'
+                    $adminMessage = if ($Id -eq 'sshd_running') {
+                        "Issue detected ($Id): OpenSSH Server is not running. Administrator privileges are required to start it."
+                    } else {
+                        "Issue detected ($Id): $FailureMessage Administrator privileges are required to apply automatic remediation."
+                    }
+                    Register-Warning -Id 'autofix_requires_admin' -Message $adminMessage
+
+                    $invocationBoundParameters['Yes'] = $true
+                    $null = Request-Elevation -Reason "apply automatic remediation for issue '$Id'"
                     throw 'AutoFixRequiresAdmin'
                 }
 
@@ -470,7 +508,7 @@ function Invoke-OpenSshServerStartup {
             return $service.Status -eq 'Running'
         } -Fix {
             & $deps.StartService 'sshd'
-        } -FailureMessage "OpenSSH Server service 'sshd' failed to start." -Remediation 'Check the OpenSSH operational log (OpenSSH/Operational) for details.'
+        } -FailureMessage "OpenSSH Server service 'sshd' is not running." -Remediation 'Start the OpenSSH Server service or check the OpenSSH operational log (OpenSSH/Operational) if it fails to start.'
 
         Invoke-Check -Id 'sshd_listening' -Description "sshd is listening on TCP port $Port." -Test {
             $listeners = & $deps.GetNetTcpConnection $Port

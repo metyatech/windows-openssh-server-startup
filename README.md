@@ -26,8 +26,11 @@ Common options:
 # Show help
 .\Start-OpenSshServer.ps1 -Help
 
-# Run with automatic remediation (prompts per fix)
-.\Start-OpenSshServer.ps1 -AutoFix
+# Automatic remediation is enabled by default (prompts per fix)
+.\Start-OpenSshServer.ps1
+
+# Disable automatic remediation
+.\Start-OpenSshServer.ps1 -NoAutoFix
 
 # Run with automatic remediation without prompts
 .\Start-OpenSshServer.ps1 -AutoFix -Yes
@@ -89,5 +92,6 @@ The script emits explicit errors for:
 - `sshd` not listening after startup
 - Stop failures or lingering listeners when stopping `sshd`
 
-When `-AutoFix` is enabled, the script asks for confirmation before applying a fix, and it retries the failed check after remediation.
+Automatic remediation is enabled by default. The script asks for confirmation before applying a fix, and it retries the failed check after remediation. Use `-NoAutoFix` to disable remediation.
 When elevation is required, the script offers to relaunch as Administrator. The elevated window stays open after completion so you can review the output. Use `-Yes` to skip the relaunch prompt.
+If the Windows `sudo` command is available, the script uses it for elevation (which can run inline when configured); otherwise it falls back to opening a new elevated window.

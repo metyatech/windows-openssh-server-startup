@@ -2,6 +2,7 @@
 [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]
 param(
     [switch]$AutoFix,
+    [switch]$NoAutoFix,
     [Alias('Force')]
     [switch]$Yes,
     [switch]$DryRun,

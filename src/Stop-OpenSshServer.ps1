@@ -95,6 +95,10 @@ $script:OpenSshStopDependencies = @{
         param($ExePath, $ArgumentList)
         Start-Process -FilePath $ExePath -ArgumentList $ArgumentList -Verb RunAs | Out-Null
     }
+    RunSudo = {
+        param($ExePath, $ArgumentList)
+        & sudo -- $ExePath @ArgumentList
+    }
 }
 
 function Get-StopResult {
@@ -267,11 +271,27 @@ function Invoke-OpenSshServerStop {
 
         $scriptPath = Join-Path (Split-Path $PSScriptRoot -Parent) 'Stop-OpenSshServer.ps1'
         $exePath = if (& $deps.GetCommand 'pwsh') { 'pwsh' } else { 'powershell' }
-        $argList = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-NoExit', '-File', $scriptPath) + (Get-InvocationArgumentList -BoundParameters $invocationBoundParameters -ExcludeKeys @('Dependencies'))
+        $baseArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $scriptPath) + (Get-InvocationArgumentList -BoundParameters $invocationBoundParameters -ExcludeKeys @('Dependencies'))
 
-        & $deps.Elevate $exePath $argList
-        Register-Action -Action 'elevate' -Details 'Relaunched with elevation.'
-        Register-Warning -Id 'relaunching_elevated' -Message 'Elevated PowerShell launched to continue operation.'
+        $usedSudo = $false
+        if (& $deps.GetCommand 'sudo') {
+            & $deps.RunSudo $exePath $baseArgs
+            if ($LASTEXITCODE -eq 0) {
+                $usedSudo = $true
+                Register-Action -Action 'elevate' -Details 'Relaunched with sudo.'
+                Register-Warning -Id 'relaunching_elevated' -Message 'Elevated command launched via sudo.'
+            } else {
+                Register-Warning -Id 'sudo_failed' -Message 'sudo is unavailable or failed; falling back to a new elevated window.'
+            }
+        }
+
+        if (-not $usedSudo) {
+            $argList = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-NoExit', '-File', $scriptPath) + (Get-InvocationArgumentList -BoundParameters $invocationBoundParameters -ExcludeKeys @('Dependencies'))
+            & $deps.Elevate $exePath $argList
+            Register-Action -Action 'elevate' -Details 'Relaunched with elevation.'
+            Register-Warning -Id 'relaunching_elevated' -Message 'Opened a new elevated PowerShell window to continue operation.'
+        }
+
         $script:ElevationRequested = $true
         throw 'ElevationRestarted'
         return $true

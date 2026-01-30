@@ -8,7 +8,11 @@ Describe 'Invoke-OpenSshServerStop' {
         $script:BuildDefaultDependencies = {
             $script:serviceStatus = 'Running'
             @{
-                GetCommand = { param($Name) @{ Name = $Name } }
+                GetCommand = {
+                    param($Name)
+                    if ($Name -eq 'sudo') { return $null }
+                    @{ Name = $Name }
+                }
                 GetService = {
                     param($Name)
                     if ($Name -ne 'sshd') { throw "Unexpected service name: $Name" }
@@ -26,6 +30,10 @@ Describe 'Invoke-OpenSshServerStop' {
                 Elevate = {
                     param($ExePath, $ArgumentList)
                     $script:ElevateArgs = @($ExePath) + $ArgumentList
+                }
+                RunSudo = {
+                    param($ExePath, $ArgumentList)
+                    $script:SudoArgs = @($ExePath) + $ArgumentList
                 }
             }
         }

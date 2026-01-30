@@ -9,7 +9,11 @@ Describe 'Invoke-OpenSshServerStartup' {
             @{
                 TestPath = { param($Path) $null = $Path; $true }
                 GetChildItem = { param($Path) $null = $Path; @([pscustomobject]@{ Name = 'ssh_host_rsa_key' }) }
-                GetCommand = { param($Name) @{ Name = $Name } }
+                GetCommand = {
+                    param($Name)
+                    if ($Name -eq 'sudo') { return $null }
+                    @{ Name = $Name }
+                }
                 GetService = {
                     param($Name)
                     if ($Name -eq 'MpsSvc' -or $Name -eq 'sshd') {
@@ -34,6 +38,10 @@ Describe 'Invoke-OpenSshServerStartup' {
                     param($ExePath, $ArgumentList)
                     $script:ElevateArgs = @($ExePath) + $ArgumentList
                 }
+                RunSudo = {
+                    param($ExePath, $ArgumentList)
+                    $script:SudoArgs = @($ExePath) + $ArgumentList
+                }
             }
         }
     }
@@ -47,6 +55,31 @@ Describe 'Invoke-OpenSshServerStartup' {
             $result = Invoke-OpenSshServerStartup -Quiet -Dependencies $script:CurrentDependencies
             $result.status | Should -Be 'success'
             $result.started | Should -BeTrue
+        }
+    }
+
+    Context 'default autofix' {
+        BeforeEach {
+            $script:CurrentDependencies = & $script:BuildDefaultDependencies
+            $script:CurrentDependencies.TestPath = {
+                param($Path)
+                if ($Path -like '*sshd.exe') { return $false }
+                return $true
+            }
+            $script:CurrentDependencies.IsAdmin = { $false }
+            Mock Confirm-AutoFix { $false }
+        }
+
+        It 'attempts autofix by default' {
+            $result = Invoke-OpenSshServerStartup -Quiet -Dependencies $script:CurrentDependencies
+            $result.status | Should -Be 'error'
+            ($result.errors | Select-Object -First 1).id | Should -Be 'requires_admin'
+        }
+
+        It 'does not autofix when NoAutoFix is set' {
+            $result = Invoke-OpenSshServerStartup -NoAutoFix -Quiet -Dependencies $script:CurrentDependencies
+            $result.status | Should -Be 'error'
+            ($result.errors | Select-Object -First 1).id | Should -Be 'openssh_binary'
         }
     }
 
@@ -83,7 +116,8 @@ Describe 'Invoke-OpenSshServerStartup' {
         It 'requests elevation when AutoFix requires admin' {
             $result = Invoke-OpenSshServerStartup -AutoFix -Quiet -Dependencies $script:CurrentDependencies
             $result.status | Should -Be 'success'
-            ($result.warnings | Select-Object -First 1).id | Should -Be 'relaunching_elevated'
+            ($result.warnings.id) | Should -Contain 'autofix_requires_admin'
+            ($result.warnings.id) | Should -Contain 'relaunching_elevated'
             $script:ElevateArgs | Should -Not -BeNullOrEmpty
         }
     }
