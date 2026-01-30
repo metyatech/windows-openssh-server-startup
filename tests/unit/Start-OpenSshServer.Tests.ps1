@@ -29,6 +29,11 @@ Describe 'Invoke-OpenSshServerStartup' {
                 AddWindowsFeature = { }
                 RepairWindowsCapability = { }
                 RunSshKeygen = { param($Path) $null = $Path }
+                IsAdmin = { $true }
+                Elevate = {
+                    param($ExePath, $ArgumentList)
+                    $script:ElevateArgs = @($ExePath) + $ArgumentList
+                }
             }
         }
     }
@@ -48,6 +53,7 @@ Describe 'Invoke-OpenSshServerStartup' {
     Context 'missing binaries' {
         BeforeEach {
             $script:CurrentDependencies = & $script:BuildDefaultDependencies
+            $script:ElevateArgs = $null
             $script:CurrentDependencies.TestPath = {
                 param($Path)
                 if ($Path -like '*sshd.exe') { return $false }
@@ -70,13 +76,15 @@ Describe 'Invoke-OpenSshServerStartup' {
                 if ($Path -like '*sshd.exe') { return $false }
                 return $true
             }
-            Mock Test-IsAdmin { $false }
+            $script:CurrentDependencies.IsAdmin = { $false }
+            Mock Confirm-AutoFix { $true }
         }
 
-        It 'returns requires_admin when AutoFix is enabled without elevation' {
+        It 'requests elevation when AutoFix requires admin' {
             $result = Invoke-OpenSshServerStartup -AutoFix -Quiet -Dependencies $script:CurrentDependencies
-            $result.status | Should -Be 'error'
-            ($result.errors | Select-Object -First 1).id | Should -Be 'requires_admin'
+            $result.status | Should -Be 'success'
+            ($result.warnings | Select-Object -First 1).id | Should -Be 'relaunching_elevated'
+            $script:ElevateArgs | Should -Not -BeNullOrEmpty
         }
     }
 
@@ -88,7 +96,7 @@ Describe 'Invoke-OpenSshServerStartup' {
                 if ($Path -like '*sshd.exe') { return $false }
                 return $true
             }
-            Mock Test-IsAdmin { $true }
+            $script:CurrentDependencies.IsAdmin = { $true }
             Mock Confirm-AutoFix {
                 param($Message, $Yes)
                 $script:CapturedConfirmMessage = $Message
@@ -123,7 +131,7 @@ Describe 'Invoke-OpenSshServerStartup' {
                 }
                 return $true
             }
-            Mock Test-IsAdmin { $true }
+            $script:CurrentDependencies.IsAdmin = { $true }
             Mock Confirm-AutoFix { $true }
         }
 

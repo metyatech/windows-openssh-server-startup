@@ -2,6 +2,7 @@
 [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]
 param(
     [switch]$Force,
+    [switch]$Yes,
     [switch]$DryRun,
     [ValidateRange(1, 65535)]
     [int]$Port = 22,

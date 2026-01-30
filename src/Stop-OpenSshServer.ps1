@@ -13,6 +13,7 @@ Usage:
 
 Options:
   -Force             Force stop the sshd service.
+  -Yes               Skip confirmation prompts when elevation is required.
   -DryRun            Preview actions without applying changes.
   -Port <int>        TCP port to verify sshd is no longer listening (default: 22).
   -Json              Emit machine-readable JSON output only.
@@ -33,6 +34,56 @@ function Test-IsAdmin {
     return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
+function Confirm-AutoFix {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Message,
+        [Parameter(Mandatory)]
+        [bool]$Yes
+    )
+
+    if ($Yes) {
+        return $true
+    }
+
+    if (-not [Environment]::UserInteractive) {
+        return $false
+    }
+
+    $answer = Read-Host "$Message (y/N)"
+    return $answer -match '^(y|yes)$'
+}
+
+function Get-InvocationArgumentList {
+    param(
+        [Parameter(Mandatory)]
+        [hashtable]$BoundParameters,
+        [Parameter(Mandatory)]
+        [string[]]$ExcludeKeys
+    )
+
+    $argumentList = @()
+    foreach ($key in $BoundParameters.Keys) {
+        if ($ExcludeKeys -contains $key) {
+            continue
+        }
+        $value = $BoundParameters[$key]
+        if ($value -is [switch]) {
+            if ($value.IsPresent) {
+                $argumentList += "-$key"
+            }
+        } elseif ($value -is [bool]) {
+            if ($value) {
+                $argumentList += "-$key"
+            }
+        } else {
+            $argumentList += "-$key"
+            $argumentList += "$value"
+        }
+    }
+    return $argumentList
+}
+
 $script:OpenSshStopDependencies = @{
     GetCommand = { param($Name) Get-Command -Name $Name -ErrorAction SilentlyContinue }
     GetService = { param($Name) Get-Service -Name $Name -ErrorAction Stop }
@@ -40,6 +91,10 @@ $script:OpenSshStopDependencies = @{
     GetNetTcpConnection = { param($Port) Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue }
     GetProcess = { param($Id) Get-Process -Id $Id -ErrorAction Stop }
     IsAdmin = { Test-IsAdmin }
+    Elevate = {
+        param($ExePath, $ArgumentList)
+        Start-Process -FilePath $ExePath -ArgumentList $ArgumentList -Verb RunAs | Out-Null
+    }
 }
 
 function Get-StopResult {
@@ -71,6 +126,7 @@ function Invoke-OpenSshServerStop {
     [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]
     param(
         [switch]$Force,
+        [switch]$Yes,
         [switch]$DryRun,
         [ValidateRange(1, 65535)]
         [int]$Port = 22,
@@ -108,6 +164,9 @@ function Invoke-OpenSshServerStop {
     $result = Get-StopResult
     $deps = if ($Dependencies) { $Dependencies } else { $script:OpenSshStopDependencies }
     $isWindowsPlatform = [System.Environment]::OSVersion.Platform -eq 'Win32NT'
+
+    $null = $Yes
+    $invocationBoundParameters = $PSBoundParameters
 
     function Write-StopLog {
         param(
@@ -189,6 +248,35 @@ function Invoke-OpenSshServerStop {
         Write-StopLog -Level 'Warning' -Message $Message
     }
 
+    function Request-Elevation {
+        param(
+            [Parameter(Mandatory)]
+            [string]$Reason
+        )
+
+        if ($WhatIfPreference) {
+            Register-Error -Id 'requires_admin' -Message "Administrator privileges required to $Reason." -Remediation 'Run in an elevated PowerShell session and retry.'
+            return $false
+        }
+
+        $confirmMessage = "Administrator privileges required to $Reason. Relaunch as Administrator now?"
+        if (-not (Confirm-AutoFix -Message $confirmMessage -Yes:$Yes)) {
+            Register-Error -Id 'requires_admin' -Message "Administrator privileges required to $Reason." -Remediation 'Start PowerShell as Administrator and rerun.'
+            return $false
+        }
+
+        $scriptPath = Join-Path (Split-Path $PSScriptRoot -Parent) 'Stop-OpenSshServer.ps1'
+        $exePath = if (& $deps.GetCommand 'pwsh') { 'pwsh' } else { 'powershell' }
+        $argList = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-NoExit', '-File', $scriptPath) + (Get-InvocationArgumentList -BoundParameters $invocationBoundParameters -ExcludeKeys @('Dependencies'))
+
+        & $deps.Elevate $exePath $argList
+        Register-Action -Action 'elevate' -Details 'Relaunched with elevation.'
+        Register-Warning -Id 'relaunching_elevated' -Message 'Elevated PowerShell launched to continue operation.'
+        $script:ElevationRequested = $true
+        throw 'ElevationRestarted'
+        return $true
+    }
+
     function Invoke-Check {
         param(
             [string]$Id,
@@ -218,6 +306,7 @@ function Invoke-OpenSshServerStop {
         return $result
     }
 
+    $script:ElevationRequested = $false
     try {
         Invoke-Check -Id 'tcp_cmdlets' -Description 'NetTCPIP cmdlets are available.' -Test {
             return $null -ne (& $deps.GetCommand 'Get-NetTCPConnection')
@@ -234,7 +323,7 @@ function Invoke-OpenSshServerStop {
             $result.stopped = $true
         } else {
             if (-not (& $deps.IsAdmin)) {
-                Register-Error -Id 'requires_admin' -Message 'Stopping sshd requires an elevated PowerShell session (Run as Administrator).' -Remediation 'Start PowerShell as Administrator and rerun.'
+                $null = Request-Elevation -Reason 'stop the OpenSSH Server service'
                 return $result
             }
 
@@ -277,6 +366,9 @@ function Invoke-OpenSshServerStop {
 
         Write-StopLog -Message 'OpenSSH Server is stopped.' -Level 'Info'
     } catch {
+        if ($script:ElevationRequested) {
+            return $result
+        }
         if ($result.status -ne 'error') {
             $result.status = 'error'
         }

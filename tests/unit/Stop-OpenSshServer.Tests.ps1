@@ -23,6 +23,10 @@ Describe 'Invoke-OpenSshServerStop' {
                 GetNetTcpConnection = { param($Port) $null = $Port; @() }
                 GetProcess = { param($Id) $null = $Id; [pscustomobject]@{ ProcessName = 'sshd' } }
                 IsAdmin = { $true }
+                Elevate = {
+                    param($ExePath, $ArgumentList)
+                    $script:ElevateArgs = @($ExePath) + $ArgumentList
+                }
             }
         }
     }
@@ -95,13 +99,23 @@ Describe 'Invoke-OpenSshServerStop' {
     Context 'requires admin' {
         BeforeEach {
             $script:CurrentDependencies = & $script:BuildDefaultDependencies
+            $script:ElevateArgs = $null
             $script:CurrentDependencies.IsAdmin = { $false }
         }
 
-        It 'returns requires_admin when not elevated' {
+        It 'returns requires_admin when elevation is declined' {
+            Mock Confirm-AutoFix { $false }
             $result = Invoke-OpenSshServerStop -Quiet -Dependencies $script:CurrentDependencies
             $result.status | Should -Be 'error'
             ($result.errors | Select-Object -First 1).id | Should -Be 'requires_admin'
+        }
+
+        It 'requests elevation when not elevated' {
+            Mock Confirm-AutoFix { $true }
+            $result = Invoke-OpenSshServerStop -Quiet -Dependencies $script:CurrentDependencies
+            $result.status | Should -Be 'success'
+            ($result.warnings | Select-Object -First 1).id | Should -Be 'relaunching_elevated'
+            $script:ElevateArgs | Should -Not -BeNullOrEmpty
         }
     }
 }

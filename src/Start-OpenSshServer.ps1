@@ -55,6 +55,36 @@ function Confirm-AutoFix {
     return $answer -match '^(y|yes)$'
 }
 
+function Get-InvocationArgumentList {
+    param(
+        [Parameter(Mandatory)]
+        [hashtable]$BoundParameters,
+        [Parameter(Mandatory)]
+        [string[]]$ExcludeKeys
+    )
+
+    $argumentList = @()
+    foreach ($key in $BoundParameters.Keys) {
+        if ($ExcludeKeys -contains $key) {
+            continue
+        }
+        $value = $BoundParameters[$key]
+        if ($value -is [switch]) {
+            if ($value.IsPresent) {
+                $argumentList += "-$key"
+            }
+        } elseif ($value -is [bool]) {
+            if ($value) {
+                $argumentList += "-$key"
+            }
+        } else {
+            $argumentList += "-$key"
+            $argumentList += "$value"
+        }
+    }
+    return $argumentList
+}
+
 $script:OpenSshStartupDependencies = @{
     TestPath = { param($Path) Test-Path $Path }
     GetChildItem = { param($Path) Get-ChildItem -Path $Path -ErrorAction SilentlyContinue }
@@ -72,6 +102,11 @@ $script:OpenSshStartupDependencies = @{
     AddWindowsFeature = { Add-WindowsFeature -Name 'OpenSSH-Server' -IncludeAllSubFeature -ErrorAction Stop | Out-Null }
     RepairWindowsCapability = { Repair-WindowsCapability -Online -Name 'OpenSSH.Server~~~~0.0.1.0' -ErrorAction Stop | Out-Null }
     RunSshKeygen = { param($Path) & $Path -A | Out-Null }
+    IsAdmin = { Test-IsAdmin }
+    Elevate = {
+        param($ExePath, $ArgumentList)
+        Start-Process -FilePath $ExePath -ArgumentList $ArgumentList -Verb RunAs | Out-Null
+    }
 }
 
 function Get-StartupResult {
@@ -146,6 +181,7 @@ function Invoke-OpenSshServerStartup {
 
     $null = $AutoFix
     $null = $Yes
+    $invocationBoundParameters = $PSBoundParameters
 
     function Write-StartupLog {
         param(
@@ -215,6 +251,48 @@ function Invoke-OpenSshServerStartup {
         }
     }
 
+    function Register-Warning {
+        param(
+            [string]$Id,
+            [string]$Message
+        )
+
+        Add-ResultItem -Result $result -Collection 'warnings' -Item ([pscustomobject]@{
+            id = $Id
+            message = $Message
+        })
+        Write-StartupLog -Level 'Warning' -Message $Message
+    }
+
+    function Request-Elevation {
+        param(
+            [Parameter(Mandatory)]
+            [string]$Reason
+        )
+
+        if ($WhatIfPreference) {
+            Register-Error -Id 'requires_admin' -Message "Administrator privileges required to $Reason." -Remediation 'Run in an elevated PowerShell session and retry.'
+            return $false
+        }
+
+        $confirmMessage = "Administrator privileges required to $Reason. Relaunch as Administrator now?"
+        if (-not (Confirm-AutoFix -Message $confirmMessage -Yes:$Yes)) {
+            Register-Error -Id 'requires_admin' -Message "Administrator privileges required to $Reason." -Remediation 'Start PowerShell as Administrator and rerun.'
+            return $false
+        }
+
+        $scriptPath = Join-Path (Split-Path $PSScriptRoot -Parent) 'Start-OpenSshServer.ps1'
+        $exePath = if (& $deps.GetCommand 'pwsh') { 'pwsh' } else { 'powershell' }
+        $argList = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-NoExit', '-File', $scriptPath) + (Get-InvocationArgumentList -BoundParameters $invocationBoundParameters -ExcludeKeys @('Dependencies'))
+
+        & $deps.Elevate $exePath $argList
+        Register-Action -Action 'elevate' -Details 'Relaunched with elevation.'
+        Register-Warning -Id 'relaunching_elevated' -Message 'Elevated PowerShell launched to continue operation.'
+        $script:ElevationRequested = $true
+        throw 'ElevationRestarted'
+        return $true
+    }
+
     function Invoke-Check {
         param(
             [string]$Id,
@@ -239,8 +317,8 @@ function Invoke-OpenSshServerStartup {
             }
 
             if ($AutoFix -and $Fix) {
-                if (-not (Test-IsAdmin)) {
-                    Register-Error -Id 'requires_admin' -Message 'AutoFix requires an elevated PowerShell session (Run as Administrator).' -Remediation 'Start PowerShell as Administrator and rerun with -AutoFix.'
+                if (-not (& $deps.IsAdmin)) {
+                    $null = Request-Elevation -Reason 'apply automatic remediation'
                     throw 'AutoFixRequiresAdmin'
                 }
 
@@ -282,6 +360,7 @@ function Invoke-OpenSshServerStartup {
     $configPath = Join-Path $env:ProgramData 'ssh\sshd_config'
     $hostKeyPattern = Join-Path $env:ProgramData 'ssh\ssh_host_*_key'
 
+    $script:ElevationRequested = $false
     try {
         Invoke-Check -Id 'openssh_binary' -Description 'OpenSSH server binaries are present.' -Test {
             & $deps.TestPath $sshdPath
@@ -414,6 +493,9 @@ function Invoke-OpenSshServerStartup {
         $result.started = $true
         Write-StartupLog -Message 'OpenSSH Server is running and ready.' -Level 'Info'
     } catch {
+        if ($script:ElevationRequested) {
+            return $result
+        }
         if ($result.status -ne 'error') {
             $result.status = 'error'
         }

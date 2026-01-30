@@ -32,6 +32,9 @@ Common options:
 # Run with automatic remediation without prompts
 .\Start-OpenSshServer.ps1 -AutoFix -Yes
 
+# Stop the OpenSSH Server with elevation prompts suppressed
+.\Stop-OpenSshServer.ps1 -Yes
+
 # Preview changes without applying them
 .\Start-OpenSshServer.ps1 -AutoFix -DryRun
 
@@ -87,3 +90,4 @@ The script emits explicit errors for:
 - Stop failures or lingering listeners when stopping `sshd`
 
 When `-AutoFix` is enabled, the script asks for confirmation before applying a fix, and it retries the failed check after remediation.
+When elevation is required, the script offers to relaunch as Administrator. The elevated window stays open after completion so you can review the output. Use `-Yes` to skip the relaunch prompt.
