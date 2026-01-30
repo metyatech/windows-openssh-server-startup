@@ -1,0 +1,11 @@
+# PowerShell
+*.user
+*.suo
+*.cache
+*.log
+
+# Test results
+TestResults/
+
+# VS Code
+.vscode/
