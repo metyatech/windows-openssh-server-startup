@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.3 - 2026-01-30
+- Add required script descriptions for PowerShell Gallery publishing.
+
 ## 0.2.2 - 2026-01-30
 - Treat empty confirmation input as yes to match (Y/n) prompts.
 
