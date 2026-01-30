@@ -1,3 +1,14 @@
+<#PSScriptInfo
+.VERSION 0.2.1
+.GUID 5ca8d653-4ca4-4520-a61e-ca6c61b75618
+.AUTHOR metyatech
+.COMPANYNAME metyatech
+.COPYRIGHT (c) 2026 metyatech. All rights reserved.
+.TAGS OpenSSH, SSH, Windows, Server, Startup
+.LICENSEURI https://github.com/metyatech/windows-openssh-server-startup/blob/main/LICENSE
+.PROJECTURI https://github.com/metyatech/windows-openssh-server-startup
+.RELEASENOTES Add PowerShell Gallery metadata for distribution.
+#>
 #requires -Version 5.1
 [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]
 param(

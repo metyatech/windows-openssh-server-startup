@@ -7,6 +7,21 @@ This repository provides a PowerShell script to validate and start the Windows O
 - Windows PowerShell 5.1+ or PowerShell 7+
 - OpenSSH Server installed (the script can install it when `-AutoFix` is approved)
 
+## Installation (PowerShell Gallery)
+Install the scripts from the PowerShell Gallery:
+
+```powershell
+Install-Script -Name Start-OpenSshServer -Repository PSGallery
+Install-Script -Name Stop-OpenSshServer -Repository PSGallery
+```
+
+Run the installed scripts from your PATH:
+
+```powershell
+Start-OpenSshServer.ps1
+Stop-OpenSshServer.ps1
+```
+
 ## Usage
 Run the script from the repository root:
 
@@ -77,8 +92,16 @@ None.
 ## Release steps
 - Update `CHANGELOG.md` with the new version and notes.
 - Ensure lint, tests, and build pass.
+- Publish the scripts to the PowerShell Gallery (see below).
 - Tag the release (for example, `vX.Y.Z`) and push the tag.
 - Create a GitHub Release with notes from the changelog.
+
+## Publish (PowerShell Gallery)
+Set the PowerShell Gallery API key in `PSGALLERY_API_KEY` and run:
+
+```powershell
+.\scripts\publish.ps1
+```
 
 ## Error handling
 The script emits explicit errors for:
