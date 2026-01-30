@@ -52,7 +52,7 @@ function Confirm-AutoFix {
         return $false
     }
 
-    $answer = Read-Host "$Message (y/N)"
+    $answer = Read-Host "$Message (Y/n)"
     return $answer -match '^(y|yes)$'
 }
 
