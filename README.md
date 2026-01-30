@@ -86,9 +86,6 @@ Use `-Verbose` or `-Trace` to output full diagnostic details, or `-Json` for mac
 
 # Build (smoke checks)
 .\scripts\build.ps1
-
-# Regenerate AGENTS.md (normalize Source paths)
-.\scripts\compose-agentsmd.ps1 -Yes
 ```
 
 ### Git hooks
