@@ -1,7 +1,7 @@
 Set-StrictMode -Version Latest
 
 function Get-OpenSshServerStopVersion {
-    '0.3.3'
+    '0.3.4'
 }
 
 function Get-OpenSshServerStopHelp {
@@ -326,6 +326,7 @@ function Invoke-OpenSshServerStop {
         $script:ElevationRequested = $true
         $result.status = 'pending'
         $result.stopped = $false
+        Register-Warning -Id 'pending_elevation' -Message 'Elevation launched; final status will be reported by the elevated session. Rerun Stop-OpenSshServer to confirm.'
         throw 'ElevationRestarted'
         return $true
     }

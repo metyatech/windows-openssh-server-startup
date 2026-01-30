@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.4 - 2026-01-30
+- Clarify pending elevation results in warnings.
+
 ## 0.3.3 - 2026-01-30
 - Use encoded PowerShell command for elevation to handle module paths.
 

@@ -1,7 +1,7 @@
 Set-StrictMode -Version Latest
 
 function Get-OpenSshServerStartupVersion {
-    '0.3.3'
+    '0.3.4'
 }
 
 function Get-OpenSshServerStartupHelp {
@@ -352,6 +352,7 @@ function Invoke-OpenSshServerStartup {
         $script:ElevationRequested = $true
         $result.status = 'pending'
         $result.started = $false
+        Register-Warning -Id 'pending_elevation' -Message 'Elevation launched; final status will be reported by the elevated session. Rerun Start-OpenSshServer to confirm.'
         throw 'ElevationRestarted'
         return $true
     }

@@ -1,6 +1,6 @@
 @{
     RootModule = 'WindowsOpenSshServerStartup.psm1'
-    ModuleVersion = '0.3.3'
+    ModuleVersion = '0.3.4'
     GUID = 'ed6f82d7-ed27-4082-9921-dbb055ed43b6'
     Author = 'metyatech'
     CompanyName = 'metyatech'
@@ -16,7 +16,7 @@
             Tags = @('OpenSSH', 'SSH', 'Windows', 'Server', 'Startup')
             LicenseUri = 'https://github.com/metyatech/windows-openssh-server-startup/blob/main/LICENSE'
             ProjectUri = 'https://github.com/metyatech/windows-openssh-server-startup'
-            ReleaseNotes = 'Use encoded command for elevation to support module paths.'
+            ReleaseNotes = 'Clarify pending elevation results.'
         }
     }
 }
