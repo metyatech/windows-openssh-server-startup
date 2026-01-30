@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.0 - 2026-01-30
+- Publish as a single PowerShell module (Start/Stop together).
+
 ## 0.2.3 - 2026-01-30
 - Add required script descriptions for PowerShell Gallery publishing.
 

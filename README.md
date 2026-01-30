@@ -8,18 +8,18 @@ This repository provides a PowerShell script to validate and start the Windows O
 - OpenSSH Server installed (the script can install it when `-AutoFix` is approved)
 
 ## Installation (PowerShell Gallery)
-Install the scripts from the PowerShell Gallery:
+Install the module from the PowerShell Gallery:
 
 ```powershell
-Install-Script -Name Start-OpenSshServer -Repository PSGallery
-Install-Script -Name Stop-OpenSshServer -Repository PSGallery
+Install-Module -Name WindowsOpenSshServerStartup -Repository PSGallery
 ```
 
-Run the installed scripts from your PATH:
+Import the module and run the commands:
 
 ```powershell
-Start-OpenSshServer.ps1
-Stop-OpenSshServer.ps1
+Import-Module WindowsOpenSshServerStartup
+Start-OpenSshServer
+Stop-OpenSshServer
 ```
 
 ## Usage
@@ -92,7 +92,7 @@ None.
 ## Release steps
 - Update `CHANGELOG.md` with the new version and notes.
 - Ensure lint, tests, and build pass.
-- Publish the scripts to the PowerShell Gallery (see below).
+- Publish the module to the PowerShell Gallery (see below).
 - Tag the release (for example, `vX.Y.Z`) and push the tag.
 - Create a GitHub Release with notes from the changelog.
 

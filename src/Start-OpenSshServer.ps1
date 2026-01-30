@@ -1,7 +1,7 @@
 Set-StrictMode -Version Latest
 
 function Get-OpenSshServerStartupVersion {
-    '0.2.3'
+    '0.3.0'
 }
 
 function Get-OpenSshServerStartupHelp {
