@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.7 - 2026-01-30
+- Suppress summary output when no action is needed.
+
+## 0.3.6 - 2026-01-30
+- Suppress summary output when sudo runs in the same terminal.
+
+## 0.3.5 - 2026-01-30
+- Default output now shows a concise summary; use -Verbose or -Trace for full details.
+
 ## 0.3.4 - 2026-01-30
 - Clarify pending elevation results in warnings.
 

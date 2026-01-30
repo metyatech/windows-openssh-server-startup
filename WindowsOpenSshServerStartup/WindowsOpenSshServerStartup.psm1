@@ -2,6 +2,7 @@ Set-StrictMode -Version Latest
 
 $moduleRoot = Split-Path -Parent $PSCommandPath
 
+. (Join-Path $moduleRoot 'Private\Output-OpenSshServerResult.ps1')
 . (Join-Path $moduleRoot 'Private\Start-OpenSshServer.ps1')
 . (Join-Path $moduleRoot 'Private\Stop-OpenSshServer.ps1')
 
@@ -33,7 +34,17 @@ function Start-OpenSshServer {
     if ($Json) {
         return ($result | ConvertTo-Json -Depth 6)
     }
-    return $result
+
+    $wantsDetailed = $Trace -or $Quiet -or ($VerbosePreference -ne 'SilentlyContinue')
+    if ($wantsDetailed) {
+        return $result
+    }
+
+    if (Test-OpenSshServerResultSuppressSummary -Result $result) {
+        return
+    }
+
+    return (Get-OpenSshServerResultSummary -Result $result -Operation 'start')
 }
 
 function Stop-OpenSshServer {
@@ -61,7 +72,17 @@ function Stop-OpenSshServer {
     if ($Json) {
         return ($result | ConvertTo-Json -Depth 6)
     }
-    return $result
+
+    $wantsDetailed = $Trace -or $Quiet -or ($VerbosePreference -ne 'SilentlyContinue')
+    if ($wantsDetailed) {
+        return $result
+    }
+
+    if (Test-OpenSshServerResultSuppressSummary -Result $result) {
+        return
+    }
+
+    return (Get-OpenSshServerResultSummary -Result $result -Operation 'stop')
 }
 
 Export-ModuleMember -Function Start-OpenSshServer, Stop-OpenSshServer

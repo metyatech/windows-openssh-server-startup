@@ -62,9 +62,18 @@ Common options:
 # Machine-readable output
 .\Start-OpenSshServer.ps1 -Json
 
+# Full result details
+.\Start-OpenSshServer.ps1 -Verbose
+
 # Force stop and verify sshd is no longer listening
 .\Stop-OpenSshServer.ps1 -Force -Port 22
 ```
+
+## Output
+By default, the scripts return a concise summary (version, status, started/stopped, and a short message).
+When no action is required (already running/stopped), the summary is suppressed.
+When elevation is performed via `sudo` in the same terminal, the summary is suppressed because the elevated run prints its own output inline.
+Use `-Verbose` or `-Trace` to output full diagnostic details, or `-Json` for machine-readable output.
 
 ## Development commands
 

@@ -1,7 +1,7 @@
 Set-StrictMode -Version Latest
 
 function Get-OpenSshServerStartupVersion {
-    '0.3.4'
+    '0.3.7'
 }
 
 function Get-OpenSshServerStartupHelp {
@@ -20,13 +20,15 @@ Options:
   -FirewallRuleName   Firewall rule display name (default: OpenSSH-Server-In-TCP).
   -Json               Emit machine-readable JSON output only.
   -Quiet              Suppress non-error output.
-  -Trace              Emit verbose diagnostic output.
+  -Trace              Emit verbose diagnostic output and full result details.
   -Version            Print version and exit.
   -Help               Print this help and exit.
 
 Notes:
   - Use -WhatIf to simulate changes (PowerShell common parameter).
   - Use -Confirm to force confirmation prompts (PowerShell common parameter).
+  - Default output is a concise summary; use -Verbose or -Trace for details.
+  - Summary output is suppressed when no action is needed.
 "@
 }
 
@@ -353,6 +355,9 @@ function Invoke-OpenSshServerStartup {
         $result.status = 'pending'
         $result.started = $false
         Register-Warning -Id 'pending_elevation' -Message 'Elevation launched; final status will be reported by the elevated session. Rerun Start-OpenSshServer to confirm.'
+        if ($usedSudo) {
+            $result | Add-Member -NotePropertyName suppressSummary -NotePropertyValue $true -Force
+        }
         throw 'ElevationRestarted'
         return $true
     }
