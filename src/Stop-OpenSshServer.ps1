@@ -39,6 +39,7 @@ $script:OpenSshStopDependencies = @{
     StopService = { param($Name, $Force) Stop-Service -Name $Name -Force:$Force -ErrorAction Stop }
     GetNetTcpConnection = { param($Port) Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue }
     GetProcess = { param($Id) Get-Process -Id $Id -ErrorAction Stop }
+    IsAdmin = { Test-IsAdmin }
 }
 
 function Get-StopResult {
@@ -232,7 +233,7 @@ function Invoke-OpenSshServerStop {
             Register-Warning -Id 'sshd_not_running' -Message "OpenSSH Server service 'sshd' is already stopped."
             $result.stopped = $true
         } else {
-            if (-not (Test-IsAdmin)) {
+            if (-not (& $deps.IsAdmin)) {
                 Register-Error -Id 'requires_admin' -Message 'Stopping sshd requires an elevated PowerShell session (Run as Administrator).' -Remediation 'Start PowerShell as Administrator and rerun.'
                 return $result
             }

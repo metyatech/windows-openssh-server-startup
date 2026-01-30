@@ -22,6 +22,7 @@ Describe 'Invoke-OpenSshServerStop' {
                 }
                 GetNetTcpConnection = { param($Port) $null = $Port; @() }
                 GetProcess = { param($Id) $null = $Id; [pscustomobject]@{ ProcessName = 'sshd' } }
+                IsAdmin = { $true }
             }
         }
     }
@@ -68,7 +69,6 @@ Describe 'Invoke-OpenSshServerStop' {
         BeforeEach {
             $script:CurrentDependencies = & $script:BuildDefaultDependencies
             $script:CurrentDependencies.StopService = { throw 'Stop failed' }
-            Mock Test-IsAdmin { $true }
         }
 
         It 'returns an error when stop fails' {
@@ -83,13 +83,25 @@ Describe 'Invoke-OpenSshServerStop' {
             $script:CurrentDependencies = & $script:BuildDefaultDependencies
             $script:CurrentDependencies.GetNetTcpConnection = { @([pscustomobject]@{ OwningProcess = 42 }) }
             $script:CurrentDependencies.GetProcess = { [pscustomobject]@{ ProcessName = 'sshd' } }
-            Mock Test-IsAdmin { $true }
         }
 
         It 'returns an error when sshd is still listening' {
             $result = Invoke-OpenSshServerStop -Quiet -Dependencies $script:CurrentDependencies
             $result.status | Should -Be 'error'
             ($result.errors | Select-Object -First 1).id | Should -Be 'sshd_listening'
+        }
+    }
+
+    Context 'requires admin' {
+        BeforeEach {
+            $script:CurrentDependencies = & $script:BuildDefaultDependencies
+            $script:CurrentDependencies.IsAdmin = { $false }
+        }
+
+        It 'returns requires_admin when not elevated' {
+            $result = Invoke-OpenSshServerStop -Quiet -Dependencies $script:CurrentDependencies
+            $result.status | Should -Be 'error'
+            ($result.errors | Select-Object -First 1).id | Should -Be 'requires_admin'
         }
     }
 }
