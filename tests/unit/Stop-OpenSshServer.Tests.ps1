@@ -5,6 +5,15 @@ Describe 'Invoke-OpenSshServerStop' {
         $script:repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..')
         . (Join-Path $script:repoRoot 'WindowsOpenSshServerStartup\Private\Stop-OpenSshServer.ps1')
 
+        function Invoke-StopSilenced {
+            param(
+                [Parameter(Mandatory)]
+                [hashtable]$Arguments
+            )
+
+            Invoke-OpenSshServerStop @Arguments 3>$null 2>$null
+        }
+
         $script:BuildDefaultDependencies = {
             $script:serviceStatus = 'Running'
             @{
@@ -58,7 +67,10 @@ Describe 'Invoke-OpenSshServerStop' {
         }
 
         It 'returns an error when sshd service is missing' {
-            $result = Invoke-OpenSshServerStop -Quiet -Dependencies $script:CurrentDependencies
+            $result = Invoke-StopSilenced -Arguments @{
+                Quiet = $true
+                Dependencies = $script:CurrentDependencies
+            }
             $result.status | Should -Be 'error'
             ($result.errors | Select-Object -First 1).id | Should -Be 'sshd_service'
         }
@@ -84,7 +96,10 @@ Describe 'Invoke-OpenSshServerStop' {
         }
 
         It 'returns an error when stop fails' {
-            $result = Invoke-OpenSshServerStop -Quiet -Dependencies $script:CurrentDependencies
+            $result = Invoke-StopSilenced -Arguments @{
+                Quiet = $true
+                Dependencies = $script:CurrentDependencies
+            }
             $result.status | Should -Be 'error'
             ($result.errors | Select-Object -First 1).id | Should -Be 'sshd_stop_failed'
         }
@@ -98,7 +113,10 @@ Describe 'Invoke-OpenSshServerStop' {
         }
 
         It 'returns an error when sshd is still listening' {
-            $result = Invoke-OpenSshServerStop -Quiet -Dependencies $script:CurrentDependencies
+            $result = Invoke-StopSilenced -Arguments @{
+                Quiet = $true
+                Dependencies = $script:CurrentDependencies
+            }
             $result.status | Should -Be 'error'
             ($result.errors | Select-Object -First 1).id | Should -Be 'sshd_listening'
         }
@@ -113,14 +131,20 @@ Describe 'Invoke-OpenSshServerStop' {
 
         It 'returns requires_admin when elevation is declined' {
             Mock Confirm-AutoFix { $false }
-            $result = Invoke-OpenSshServerStop -Quiet -Dependencies $script:CurrentDependencies
+            $result = Invoke-StopSilenced -Arguments @{
+                Quiet = $true
+                Dependencies = $script:CurrentDependencies
+            }
             $result.status | Should -Be 'error'
             ($result.errors | Select-Object -First 1).id | Should -Be 'requires_admin'
         }
 
         It 'requests elevation when not elevated' {
             Mock Confirm-AutoFix { $true }
-            $result = Invoke-OpenSshServerStop -Quiet -Dependencies $script:CurrentDependencies
+            $result = Invoke-StopSilenced -Arguments @{
+                Quiet = $true
+                Dependencies = $script:CurrentDependencies
+            }
             $result.status | Should -Be 'pending'
             $result.stopped | Should -BeFalse
             ($result.warnings.id) | Should -Contain 'relaunching_elevated'

@@ -5,6 +5,15 @@ Describe 'Invoke-OpenSshServerStartup' {
         $script:repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..')
         . (Join-Path $script:repoRoot 'WindowsOpenSshServerStartup\Private\Start-OpenSshServer.ps1')
 
+        function Invoke-StartupSilenced {
+            param(
+                [Parameter(Mandatory)]
+                [hashtable]$Arguments
+            )
+
+            Invoke-OpenSshServerStartup @Arguments 3>$null 2>$null
+        }
+
         $script:BuildDefaultDependencies = {
             @{
                 TestPath = { param($Path) $null = $Path; $true }
@@ -71,13 +80,20 @@ Describe 'Invoke-OpenSshServerStartup' {
         }
 
         It 'attempts autofix by default' {
-            $result = Invoke-OpenSshServerStartup -Quiet -Dependencies $script:CurrentDependencies
+            $result = Invoke-StartupSilenced -Arguments @{
+                Quiet = $true
+                Dependencies = $script:CurrentDependencies
+            }
             $result.status | Should -Be 'error'
             ($result.errors | Select-Object -First 1).id | Should -Be 'requires_admin'
         }
 
         It 'does not autofix when NoAutoFix is set' {
-            $result = Invoke-OpenSshServerStartup -NoAutoFix -Quiet -Dependencies $script:CurrentDependencies
+            $result = Invoke-StartupSilenced -Arguments @{
+                NoAutoFix = $true
+                Quiet = $true
+                Dependencies = $script:CurrentDependencies
+            }
             $result.status | Should -Be 'error'
             ($result.errors | Select-Object -First 1).id | Should -Be 'openssh_binary'
         }
@@ -95,7 +111,10 @@ Describe 'Invoke-OpenSshServerStartup' {
         }
 
         It 'returns an error for missing OpenSSH binaries' {
-            $result = Invoke-OpenSshServerStartup -Quiet -Dependencies $script:CurrentDependencies
+            $result = Invoke-StartupSilenced -Arguments @{
+                Quiet = $true
+                Dependencies = $script:CurrentDependencies
+            }
             $result.status | Should -Be 'error'
             ($result.errors | Select-Object -First 1).id | Should -Be 'openssh_binary'
         }
@@ -114,7 +133,11 @@ Describe 'Invoke-OpenSshServerStartup' {
         }
 
         It 'requests elevation when AutoFix requires admin' {
-            $result = Invoke-OpenSshServerStartup -AutoFix -Quiet -Dependencies $script:CurrentDependencies
+            $result = Invoke-StartupSilenced -Arguments @{
+                AutoFix = $true
+                Quiet = $true
+                Dependencies = $script:CurrentDependencies
+            }
             $result.status | Should -Be 'pending'
             $result.started | Should -BeFalse
             ($result.warnings.id) | Should -Contain 'autofix_requires_admin'
@@ -141,13 +164,21 @@ Describe 'Invoke-OpenSshServerStartup' {
         }
 
         It 'returns an error when AutoFix is declined' {
-            $result = Invoke-OpenSshServerStartup -AutoFix -Quiet -Dependencies $script:CurrentDependencies
+            $result = Invoke-StartupSilenced -Arguments @{
+                AutoFix = $true
+                Quiet = $true
+                Dependencies = $script:CurrentDependencies
+            }
             $result.status | Should -Be 'error'
             ($result.errors | Select-Object -First 1).id | Should -Be 'openssh_binary'
         }
 
         It 'uses a clear confirmation message' {
-            $null = Invoke-OpenSshServerStartup -AutoFix -Quiet -Dependencies $script:CurrentDependencies
+            $null = Invoke-StartupSilenced -Arguments @{
+                AutoFix = $true
+                Quiet = $true
+                Dependencies = $script:CurrentDependencies
+            }
             $script:CapturedConfirmMessage | Should -Match 'Issue detected'
             $script:CapturedConfirmMessage | Should -Match 'Apply automatic remediation'
             $script:CapturedConfirmMessage | Should -Match 'openssh_binary'
@@ -171,7 +202,11 @@ Describe 'Invoke-OpenSshServerStartup' {
         }
 
         It 'retries the failing check after AutoFix' {
-            $result = Invoke-OpenSshServerStartup -AutoFix -Quiet -Dependencies $script:CurrentDependencies
+            $result = Invoke-StartupSilenced -Arguments @{
+                AutoFix = $true
+                Quiet = $true
+                Dependencies = $script:CurrentDependencies
+            }
             $result.status | Should -Be 'success'
             $script:callCount | Should -BeGreaterThan 1
         }
@@ -184,7 +219,10 @@ Describe 'Invoke-OpenSshServerStartup' {
         }
 
         It 'returns an error when the SSH port is in use' {
-            $result = Invoke-OpenSshServerStartup -Quiet -Dependencies $script:CurrentDependencies
+            $result = Invoke-StartupSilenced -Arguments @{
+                Quiet = $true
+                Dependencies = $script:CurrentDependencies
+            }
             $result.status | Should -Be 'error'
             ($result.errors | Select-Object -First 1).id | Should -Be 'port_available'
         }

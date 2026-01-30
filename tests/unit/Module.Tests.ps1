@@ -6,6 +6,24 @@ Describe 'WindowsOpenSshServerStartup module' {
         $modulePath = Join-Path $script:repoRoot 'WindowsOpenSshServerStartup\WindowsOpenSshServerStartup.psd1'
         Import-Module $modulePath -Force
 
+        function Invoke-StartSilenced {
+            param(
+                [Parameter(Mandatory)]
+                [hashtable]$Arguments
+            )
+
+            Start-OpenSshServer @Arguments 6>$null 4>$null 3>$null 2>$null
+        }
+
+        function Invoke-StopSilenced {
+            param(
+                [Parameter(Mandatory)]
+                [hashtable]$Arguments
+            )
+
+            Stop-OpenSshServer @Arguments 6>$null 4>$null 3>$null 2>$null
+        }
+
         $script:BuildDefaultDependencies = {
             @{}
         }
@@ -71,12 +89,17 @@ Describe 'WindowsOpenSshServerStartup module' {
     }
 
     It 'runs Start-OpenSshServer with injected dependencies' {
-        $result = Start-OpenSshServer -Quiet -Dependencies $script:StartDependencies
+        $result = Invoke-StartSilenced -Arguments @{
+            Quiet = $true
+            Dependencies = $script:StartDependencies
+        }
         $result.status | Should -Be 'success'
     }
 
     It 'suppresses summary output when no action is needed for Start-OpenSshServer' {
-        $result = Start-OpenSshServer -Dependencies $script:StartDependencies
+        $result = Invoke-StartSilenced -Arguments @{
+            Dependencies = $script:StartDependencies
+        }
         $result | Should -Be $null
     }
 
@@ -94,14 +117,20 @@ Describe 'WindowsOpenSshServerStartup module' {
         }
         $deps.NewFirewallRule = { param($DisplayName, $Port) $null = $DisplayName; $null = $Port }
 
-        $result = Start-OpenSshServer -Yes -Dependencies $deps
+        $result = Invoke-StartSilenced -Arguments @{
+            Yes = $true
+            Dependencies = $deps
+        }
         ($result.PSObject.Properties.Name) | Should -Contain 'status'
         ($result.PSObject.Properties.Name) | Should -Contain 'message'
         ($result.PSObject.Properties.Name) | Should -Not -Contain 'checks'
     }
 
     It 'returns full details when verbose is requested for Start-OpenSshServer' {
-        $result = Start-OpenSshServer -Verbose -Dependencies $script:StartDependencies
+        $result = Invoke-StartSilenced -Arguments @{
+            Verbose = $true
+            Dependencies = $script:StartDependencies
+        }
         ($result.PSObject.Properties.Name) | Should -Contain 'checks'
         $result.status | Should -Be 'success'
     }
@@ -128,17 +157,25 @@ Describe 'WindowsOpenSshServerStartup module' {
             $global:LASTEXITCODE = 0
         }
 
-        $result = Start-OpenSshServer -Yes -Dependencies $deps
+        $result = Invoke-StartSilenced -Arguments @{
+            Yes = $true
+            Dependencies = $deps
+        }
         $result | Should -Be $null
     }
 
     It 'runs Stop-OpenSshServer with injected dependencies' {
-        $result = Stop-OpenSshServer -Quiet -Dependencies $script:StopDependencies
+        $result = Invoke-StopSilenced -Arguments @{
+            Quiet = $true
+            Dependencies = $script:StopDependencies
+        }
         $result.status | Should -Be 'success'
     }
 
     It 'suppresses summary output when no action is needed for Stop-OpenSshServer' {
-        $result = Stop-OpenSshServer -Dependencies $script:StopDependencies
+        $result = Invoke-StopSilenced -Arguments @{
+            Dependencies = $script:StopDependencies
+        }
         $result | Should -Be $null
     }
 
@@ -155,14 +192,19 @@ Describe 'WindowsOpenSshServerStartup module' {
             RunSudo = { param($ExePath, $ArgumentList) $null = $ExePath; $null = $ArgumentList }
         }
 
-        $result = Stop-OpenSshServer -Dependencies $deps
+        $result = Invoke-StopSilenced -Arguments @{
+            Dependencies = $deps
+        }
         ($result.PSObject.Properties.Name) | Should -Contain 'status'
         ($result.PSObject.Properties.Name) | Should -Contain 'message'
         ($result.PSObject.Properties.Name) | Should -Not -Contain 'checks'
     }
 
     It 'returns full details when verbose is requested for Stop-OpenSshServer' {
-        $result = Stop-OpenSshServer -Verbose -Dependencies $script:StopDependencies
+        $result = Invoke-StopSilenced -Arguments @{
+            Verbose = $true
+            Dependencies = $script:StopDependencies
+        }
         ($result.PSObject.Properties.Name) | Should -Contain 'checks'
         $result.status | Should -Be 'success'
     }
@@ -184,7 +226,10 @@ Describe 'WindowsOpenSshServerStartup module' {
             }
         }
 
-        $result = Stop-OpenSshServer -Yes -Dependencies $deps
+        $result = Invoke-StopSilenced -Arguments @{
+            Yes = $true
+            Dependencies = $deps
+        }
         $result | Should -Be $null
     }
 }
