@@ -1,5 +1,5 @@
 <#PSScriptInfo
-.VERSION 0.3.0
+.VERSION 0.3.1
 .GUID d6e03cb4-a92f-4550-bdda-81093864c6a4
 .AUTHOR metyatech
 .COMPANYNAME metyatech
@@ -8,7 +8,7 @@
 .DESCRIPTION Stop Windows OpenSSH Server and verify shutdown.
 .LICENSEURI https://github.com/metyatech/windows-openssh-server-startup/blob/main/LICENSE
 .PROJECTURI https://github.com/metyatech/windows-openssh-server-startup
-.RELEASENOTES Publish as a single module package.
+.RELEASENOTES Bundle module scripts for PowerShell Gallery installs.
 #>
 #requires -Version 5.1
 [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]
@@ -27,7 +27,7 @@ param(
 
 Set-StrictMode -Version Latest
 
-$modulePath = Join-Path $PSScriptRoot 'src\Stop-OpenSshServer.ps1'
+$modulePath = Join-Path $PSScriptRoot 'WindowsOpenSshServerStartup\Private\Stop-OpenSshServer.ps1'
 . $modulePath
 
 if ($Version -or $Help) {

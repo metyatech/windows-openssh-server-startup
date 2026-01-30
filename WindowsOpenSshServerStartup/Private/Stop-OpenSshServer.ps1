@@ -1,7 +1,7 @@
 Set-StrictMode -Version Latest
 
 function Get-OpenSshServerStopVersion {
-    '0.3.0'
+    '0.3.1'
 }
 
 function Get-OpenSshServerStopHelp {

@@ -1,10 +1,9 @@
 Set-StrictMode -Version Latest
 
 $moduleRoot = Split-Path -Parent $PSCommandPath
-$repoRoot = Split-Path -Parent $moduleRoot
 
-. (Join-Path $repoRoot 'src\Start-OpenSshServer.ps1')
-. (Join-Path $repoRoot 'src\Stop-OpenSshServer.ps1')
+. (Join-Path $moduleRoot 'Private\Start-OpenSshServer.ps1')
+. (Join-Path $moduleRoot 'Private\Stop-OpenSshServer.ps1')
 
 function Start-OpenSshServer {
     [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]
@@ -23,6 +22,12 @@ function Start-OpenSshServer {
         [Parameter(DontShow)]
         [hashtable]$Dependencies
     )
+
+    if (-not $PSCmdlet.ShouldProcess('OpenSSH Server', 'Start')) {
+        if (-not $WhatIfPreference) {
+            return
+        }
+    }
 
     $result = Invoke-OpenSshServerStartup @PSBoundParameters
     if ($Json) {
@@ -45,6 +50,12 @@ function Stop-OpenSshServer {
         [Parameter(DontShow)]
         [hashtable]$Dependencies
     )
+
+    if (-not $PSCmdlet.ShouldProcess('OpenSSH Server', 'Stop')) {
+        if (-not $WhatIfPreference) {
+            return
+        }
+    }
 
     $result = Invoke-OpenSshServerStop @PSBoundParameters
     if ($Json) {

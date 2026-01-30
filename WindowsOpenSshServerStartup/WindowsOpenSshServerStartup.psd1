@@ -1,6 +1,6 @@
 @{
     RootModule = 'WindowsOpenSshServerStartup.psm1'
-    ModuleVersion = '0.3.0'
+    ModuleVersion = '0.3.1'
     GUID = 'ed6f82d7-ed27-4082-9921-dbb055ed43b6'
     Author = 'metyatech'
     CompanyName = 'metyatech'
@@ -16,7 +16,7 @@
             Tags = @('OpenSSH', 'SSH', 'Windows', 'Server', 'Startup')
             LicenseUri = 'https://github.com/metyatech/windows-openssh-server-startup/blob/main/LICENSE'
             ProjectUri = 'https://github.com/metyatech/windows-openssh-server-startup'
-            ReleaseNotes = 'Publish as a single module package.'
+            ReleaseNotes = 'Bundle module scripts for PowerShell Gallery installs.'
         }
     }
 }

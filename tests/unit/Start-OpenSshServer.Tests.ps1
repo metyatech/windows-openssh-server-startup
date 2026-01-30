@@ -3,7 +3,7 @@ Set-StrictMode -Version Latest
 Describe 'Invoke-OpenSshServerStartup' {
     BeforeAll {
         $script:repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..')
-        . (Join-Path $script:repoRoot 'src\Start-OpenSshServer.ps1')
+        . (Join-Path $script:repoRoot 'WindowsOpenSshServerStartup\Private\Start-OpenSshServer.ps1')
 
         $script:BuildDefaultDependencies = {
             @{
@@ -206,7 +206,7 @@ Describe 'Invoke-OpenSshServerStartup' {
 Describe 'Confirm-AutoFix (Start)' {
     BeforeAll {
         $script:repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..')
-        . (Join-Path $script:repoRoot 'src\Start-OpenSshServer.ps1')
+        . (Join-Path $script:repoRoot 'WindowsOpenSshServerStartup\Private\Start-OpenSshServer.ps1')
     }
 
     It 'treats empty input as yes' {

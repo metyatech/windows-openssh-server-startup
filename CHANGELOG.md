@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.1 - 2026-01-30
+- Include module private scripts in the published package.
+
 ## 0.3.0 - 2026-01-30
 - Publish as a single PowerShell module (Start/Stop together).
 
