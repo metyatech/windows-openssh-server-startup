@@ -1,7 +1,7 @@
 Set-StrictMode -Version Latest
 
 function Get-OpenSshServerStartupVersion {
-    '0.3.2'
+    '0.3.3'
 }
 
 function Get-OpenSshServerStartupHelp {
@@ -298,9 +298,29 @@ function Invoke-OpenSshServerStartup {
             return $false
         }
 
-        $scriptPath = Join-Path (Split-Path $PSScriptRoot -Parent) 'Start-OpenSshServer.ps1'
+        $moduleManifest = Join-Path (Split-Path $PSScriptRoot -Parent) 'WindowsOpenSshServerStartup.psd1'
         $exePath = if (& $deps.GetCommand 'pwsh') { 'pwsh' } else { 'powershell' }
-        $baseArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $scriptPath) + (Get-InvocationArgumentList -BoundParameters $invocationBoundParameters -ExcludeKeys @('Dependencies'))
+        $argumentList = Get-InvocationArgumentList -BoundParameters $invocationBoundParameters -ExcludeKeys @('Dependencies')
+
+        function Format-CommandArgument {
+            param(
+                [Parameter(Mandatory)]
+                [string]$Value
+            )
+
+            if ($Value -match '^-') {
+                return $Value
+            }
+
+            $escaped = $Value -replace "'", "''"
+            return "'$escaped'"
+        }
+
+        $formattedArgs = $argumentList | ForEach-Object { Format-CommandArgument -Value $_ }
+        $escapedModulePath = ($moduleManifest -replace "'", "''")
+        $commandText = "Import-Module -Force -Name '$escapedModulePath'; Start-OpenSshServer $($formattedArgs -join ' ')"
+        $encodedCommand = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($commandText))
+        $baseArgs = @('-NoProfile', '-EncodedCommand', $encodedCommand)
 
         $usedSudo = $false
         $sudoCommand = & $deps.GetCommand 'sudo'
@@ -323,7 +343,7 @@ function Invoke-OpenSshServerStartup {
         }
 
         if (-not $usedSudo) {
-            $argList = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-NoExit', '-File', $scriptPath) + (Get-InvocationArgumentList -BoundParameters $invocationBoundParameters -ExcludeKeys @('Dependencies'))
+            $argList = @('-NoProfile', '-NoExit', '-EncodedCommand', $encodedCommand)
             & $deps.Elevate $exePath $argList
             Register-Action -Action 'elevate' -Details 'Relaunched with elevation.'
             Register-Warning -Id 'relaunching_elevated' -Message 'Opened a new elevated PowerShell window to continue operation.'

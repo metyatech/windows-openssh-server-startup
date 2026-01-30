@@ -1,5 +1,5 @@
 <#PSScriptInfo
-.VERSION 0.3.2
+.VERSION 0.3.3
 .GUID 5ca8d653-4ca4-4520-a61e-ca6c61b75618
 .AUTHOR metyatech
 .COMPANYNAME metyatech
@@ -8,7 +8,7 @@
 .DESCRIPTION Start and validate Windows OpenSSH Server with optional remediation.
 .LICENSEURI https://github.com/metyatech/windows-openssh-server-startup/blob/main/LICENSE
 .PROJECTURI https://github.com/metyatech/windows-openssh-server-startup
-.RELEASENOTES Improve elevation results and sudo diagnostics.
+.RELEASENOTES Use encoded command for elevation to support module paths.
 #>
 #requires -Version 5.1
 [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]

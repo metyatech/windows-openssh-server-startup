@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.3 - 2026-01-30
+- Use encoded PowerShell command for elevation to handle module paths.
+
 ## 0.3.2 - 2026-01-30
 - Report pending status after elevation requests and improve sudo diagnostics.
 
