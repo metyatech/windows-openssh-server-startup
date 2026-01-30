@@ -127,3 +127,20 @@ Describe 'Invoke-OpenSshServerStop' {
         }
     }
 }
+
+Describe 'Confirm-AutoFix (Stop)' {
+    BeforeAll {
+        $script:repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..')
+        . (Join-Path $script:repoRoot 'src\Stop-OpenSshServer.ps1')
+    }
+
+    It 'treats empty input as yes' {
+        Mock Read-Host { '' }
+        Confirm-AutoFix -Message 'Test' -Yes:$false | Should -BeTrue
+    }
+
+    It 'treats n input as no' {
+        Mock Read-Host { 'n' }
+        Confirm-AutoFix -Message 'Test' -Yes:$false | Should -BeFalse
+    }
+}

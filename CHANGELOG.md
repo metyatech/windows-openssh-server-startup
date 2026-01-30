@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.2 - 2026-01-30
+- Treat empty confirmation input as yes to match (Y/n) prompts.
+
 ## 0.2.1 - 2026-01-30
 - Add PowerShell Gallery script metadata for Start/Stop scripts.
 - Document PowerShell Gallery installation and publish steps.

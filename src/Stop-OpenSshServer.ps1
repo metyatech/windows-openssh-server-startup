@@ -1,7 +1,7 @@
 Set-StrictMode -Version Latest
 
 function Get-OpenSshServerStopVersion {
-    '0.2.1'
+    '0.2.2'
 }
 
 function Get-OpenSshServerStopHelp {
@@ -51,6 +51,9 @@ function Confirm-AutoFix {
     }
 
     $answer = Read-Host "$Message (Y/n)"
+    if ([string]::IsNullOrWhiteSpace($answer)) {
+        return $true
+    }
     return $answer -match '^(y|yes)$'
 }
 

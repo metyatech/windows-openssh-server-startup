@@ -1,5 +1,5 @@
 <#PSScriptInfo
-.VERSION 0.2.1
+.VERSION 0.2.2
 .GUID d6e03cb4-a92f-4550-bdda-81093864c6a4
 .AUTHOR metyatech
 .COMPANYNAME metyatech
@@ -7,7 +7,7 @@
 .TAGS OpenSSH, SSH, Windows, Server, Stop
 .LICENSEURI https://github.com/metyatech/windows-openssh-server-startup/blob/main/LICENSE
 .PROJECTURI https://github.com/metyatech/windows-openssh-server-startup
-.RELEASENOTES Add PowerShell Gallery metadata for distribution.
+.RELEASENOTES Use Enter as yes for confirmation prompts.
 #>
 #requires -Version 5.1
 [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]
