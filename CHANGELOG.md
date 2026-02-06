@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.8 - 2026-02-06
+- Refactor `Confirm-AutoFix` to a shared private script.
+- Fix unit tests for non-interactive environments by injecting `IsInteractive` dependency.
+
 ## 0.3.7 - 2026-01-30
 - Suppress summary output when no action is needed.
 

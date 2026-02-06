@@ -36,6 +36,7 @@ Describe 'Invoke-OpenSshServerStop' {
                 GetNetTcpConnection = { param($Port) $null = $Port; @() }
                 GetProcess = { param($Id) $null = $Id; [pscustomobject]@{ ProcessName = 'sshd' } }
                 IsAdmin = { $true }
+                IsInteractive = { $true }
                 Elevate = {
                     param($ExePath, $ArgumentList)
                     $script:ElevateArgs = @($ExePath) + $ArgumentList
@@ -161,11 +162,11 @@ Describe 'Confirm-AutoFix (Stop)' {
 
     It 'treats empty input as yes' {
         Mock Read-Host { '' }
-        Confirm-AutoFix -Message 'Test' -Yes:$false | Should -BeTrue
+        Confirm-AutoFix -Message 'Test' -Yes:$false -IsInteractive { $true } | Should -BeTrue
     }
 
     It 'treats n input as no' {
         Mock Read-Host { 'n' }
-        Confirm-AutoFix -Message 'Test' -Yes:$false | Should -BeFalse
+        Confirm-AutoFix -Message 'Test' -Yes:$false -IsInteractive { $true } | Should -BeFalse
     }
 }

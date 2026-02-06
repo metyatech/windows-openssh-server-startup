@@ -1,7 +1,7 @@
 Set-StrictMode -Version Latest
 
 function Get-OpenSshServerStopVersion {
-    '0.3.7'
+    '0.3.8'
 }
 
 function Get-OpenSshServerStopHelp {
@@ -36,28 +36,7 @@ function Test-IsAdmin {
     return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
-function Confirm-AutoFix {
-    param(
-        [Parameter(Mandatory)]
-        [string]$Message,
-        [Parameter(Mandatory)]
-        [bool]$Yes
-    )
-
-    if ($Yes) {
-        return $true
-    }
-
-    if (-not [Environment]::UserInteractive) {
-        return $false
-    }
-
-    $answer = Read-Host "$Message (Y/n)"
-    if ([string]::IsNullOrWhiteSpace($answer)) {
-        return $true
-    }
-    return $answer -match '^(y|yes)$'
-}
+. (Join-Path $PSScriptRoot 'Confirm-AutoFix.ps1')
 
 function Get-InvocationArgumentList {
     param(
@@ -96,6 +75,7 @@ $script:OpenSshStopDependencies = @{
     GetNetTcpConnection = { param($Port) Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue }
     GetProcess = { param($Id) Get-Process -Id $Id -ErrorAction Stop }
     IsAdmin = { Test-IsAdmin }
+    IsInteractive = { [Environment]::UserInteractive }
     Elevate = {
         param($ExePath, $ArgumentList)
         Start-Process -FilePath $ExePath -ArgumentList $ArgumentList -Verb RunAs | Out-Null
@@ -269,7 +249,7 @@ function Invoke-OpenSshServerStop {
         }
 
         $confirmMessage = "Administrator privileges required to $Reason. Relaunch as Administrator now?"
-        if (-not (Confirm-AutoFix -Message $confirmMessage -Yes:$Yes)) {
+        if (-not (Confirm-AutoFix -Message $confirmMessage -Yes:$Yes -IsInteractive $Dependencies.IsInteractive)) {
             Register-Error -Id 'requires_admin' -Message "Administrator privileges required to $Reason." -Remediation 'Start PowerShell as Administrator and rerun.'
             return $false
         }

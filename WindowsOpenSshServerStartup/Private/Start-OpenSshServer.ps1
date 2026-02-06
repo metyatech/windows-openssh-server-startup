@@ -1,7 +1,7 @@
 Set-StrictMode -Version Latest
 
 function Get-OpenSshServerStartupVersion {
-    '0.3.7'
+    '0.3.8'
 }
 
 function Get-OpenSshServerStartupHelp {
@@ -38,28 +38,7 @@ function Test-IsAdmin {
     return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
-function Confirm-AutoFix {
-    param(
-        [Parameter(Mandatory)]
-        [string]$Message,
-        [Parameter(Mandatory)]
-        [bool]$Yes
-    )
-
-    if ($Yes) {
-        return $true
-    }
-
-    if (-not [Environment]::UserInteractive) {
-        return $false
-    }
-
-    $answer = Read-Host "$Message (Y/n)"
-    if ([string]::IsNullOrWhiteSpace($answer)) {
-        return $true
-    }
-    return $answer -match '^(y|yes)$'
-}
+. (Join-Path $PSScriptRoot 'Confirm-AutoFix.ps1')
 
 function Get-InvocationArgumentList {
     param(
@@ -109,6 +88,7 @@ $script:OpenSshStartupDependencies = @{
     RepairWindowsCapability = { Repair-WindowsCapability -Online -Name 'OpenSSH.Server~~~~0.0.1.0' -ErrorAction Stop | Out-Null }
     RunSshKeygen = { param($Path) & $Path -A | Out-Null }
     IsAdmin = { Test-IsAdmin }
+    IsInteractive = { [Environment]::UserInteractive }
     Elevate = {
         param($ExePath, $ArgumentList)
         Start-Process -FilePath $ExePath -ArgumentList $ArgumentList -Verb RunAs | Out-Null
@@ -295,7 +275,7 @@ function Invoke-OpenSshServerStartup {
         }
 
         $confirmMessage = "Administrator privileges required to $Reason. Relaunch as Administrator now?"
-        if (-not (Confirm-AutoFix -Message $confirmMessage -Yes:$Yes)) {
+        if (-not (Confirm-AutoFix -Message $confirmMessage -Yes:$Yes -IsInteractive $Dependencies.IsInteractive)) {
             Register-Error -Id 'requires_admin' -Message "Administrator privileges required to $Reason." -Remediation 'Start PowerShell as Administrator and rerun.'
             return $false
         }
@@ -400,7 +380,7 @@ function Invoke-OpenSshServerStartup {
                 }
 
                 $confirmMessage = "Issue detected ($Id): $FailureMessage Apply automatic remediation now?"
-                if (-not (Confirm-AutoFix -Message $confirmMessage -Yes:$Yes)) {
+                if (-not (Confirm-AutoFix -Message $confirmMessage -Yes:$Yes -IsInteractive $Dependencies.IsInteractive)) {
                     Register-Error -Id $Id -Message $FailureMessage -Remediation 'Rerun with -AutoFix -Yes to allow automatic remediation.'
                     throw 'AutoFixDeclined'
                 }
