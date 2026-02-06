@@ -56,6 +56,7 @@ Describe 'WindowsOpenSshServerStartup module' {
             RepairWindowsCapability = { }
             RunSshKeygen = { param($Path) $null = $Path }
             IsAdmin = { $true }
+            IsInteractive = { $true }
             Elevate = { param($ExePath, $ArgumentList) $null = $ExePath; $null = $ArgumentList }
             RunSudo = { param($ExePath, $ArgumentList) $null = $ExePath; $null = $ArgumentList }
         }
@@ -75,6 +76,7 @@ Describe 'WindowsOpenSshServerStartup module' {
             GetNetTcpConnection = { param($Port) $null = $Port; @() }
             GetProcess = { param($Id) $null = $Id; [pscustomobject]@{ ProcessName = 'sshd' } }
             IsAdmin = { $true }
+            IsInteractive = { $true }
             Elevate = { param($ExePath, $ArgumentList) $null = $ExePath; $null = $ArgumentList }
             RunSudo = { param($ExePath, $ArgumentList) $null = $ExePath; $null = $ArgumentList }
         }
@@ -143,6 +145,7 @@ Describe 'WindowsOpenSshServerStartup module' {
             return $true
         }
         $deps.IsAdmin = { $false }
+        $deps.IsInteractive = { $true }
         $deps.GetCommand = {
             param($Name)
             if ($Name -eq 'sudo') {
@@ -188,6 +191,7 @@ Describe 'WindowsOpenSshServerStartup module' {
             GetNetTcpConnection = { param($Port) $null = $Port; @() }
             GetProcess = { param($Id) $null = $Id; [pscustomobject]@{ ProcessName = 'sshd' } }
             IsAdmin = { $true }
+            IsInteractive = { $true }
             Elevate = { param($ExePath, $ArgumentList) $null = $ExePath; $null = $ArgumentList }
             RunSudo = { param($ExePath, $ArgumentList) $null = $ExePath; $null = $ArgumentList }
         }
@@ -217,6 +221,7 @@ Describe 'WindowsOpenSshServerStartup module' {
             GetNetTcpConnection = { param($Port) $null = $Port; @() }
             GetProcess = { param($Id) $null = $Id; [pscustomobject]@{ ProcessName = 'sshd' } }
             IsAdmin = { $false }
+            IsInteractive = { $true }
             Elevate = { param($ExePath, $ArgumentList) $null = $ExePath; $null = $ArgumentList }
             RunSudo = {
                 param($ExePath, $ArgumentList)

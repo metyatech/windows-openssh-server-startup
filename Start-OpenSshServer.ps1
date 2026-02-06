@@ -1,5 +1,5 @@
 <#PSScriptInfo
-.VERSION 0.3.7
+.VERSION 0.3.8
 .GUID 5ca8d653-4ca4-4520-a61e-ca6c61b75618
 .AUTHOR metyatech
 .COMPANYNAME metyatech
