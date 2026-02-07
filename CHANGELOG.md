@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.0 - 2026-02-07
+- Refactor private functions into a shared module to eliminate duplication.
+- Improve Confirm-AutoFix testability and fix failing unit tests in non-interactive environments.
+
 ## 0.3.7 - 2026-01-30
 - Suppress summary output when no action is needed.
 

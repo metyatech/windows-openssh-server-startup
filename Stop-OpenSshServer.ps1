@@ -1,5 +1,5 @@
 <#PSScriptInfo
-.VERSION 0.3.7
+.VERSION 0.4.0
 .GUID d6e03cb4-a92f-4550-bdda-81093864c6a4
 .AUTHOR metyatech
 .COMPANYNAME metyatech
@@ -8,7 +8,7 @@
 .DESCRIPTION Stop Windows OpenSSH Server and verify shutdown.
 .LICENSEURI https://github.com/metyatech/windows-openssh-server-startup/blob/main/LICENSE
 .PROJECTURI https://github.com/metyatech/windows-openssh-server-startup
-.RELEASENOTES Suppress summary output when no action is needed.
+.RELEASENOTES Refactor private functions into a shared module.
 #>
 #requires -Version 5.1
 [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]
@@ -28,8 +28,10 @@ param(
 Set-StrictMode -Version Latest
 
 $summaryPath = Join-Path $PSScriptRoot 'WindowsOpenSshServerStartup\Private\Output-OpenSshServerResult.ps1'
+$sharedPath = Join-Path $PSScriptRoot 'WindowsOpenSshServerStartup\Private\Shared.ps1'
 $modulePath = Join-Path $PSScriptRoot 'WindowsOpenSshServerStartup\Private\Stop-OpenSshServer.ps1'
 . $summaryPath
+. $sharedPath
 . $modulePath
 
 if ($Version -or $Help) {
