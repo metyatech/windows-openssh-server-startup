@@ -16,12 +16,6 @@ jobs:
           Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
           Install-Module Pester -Scope CurrentUser -Force
           Install-Module PSScriptAnalyzer -Scope CurrentUser -Force
-      - name: Lint
+      - name: Verify
         shell: pwsh
-        run: ./scripts/lint.ps1
-      - name: Tests
-        shell: pwsh
-        run: ./scripts/test.ps1
-      - name: Build
-        shell: pwsh
-        run: ./scripts/build.ps1
+        run: ./scripts/verify.ps1

@@ -78,6 +78,9 @@ Use `-Verbose` or `-Trace` to output full diagnostic details, or `-Json` for mac
 ## Development commands
 
 ```powershell
+# Full verification (lint, build, test)
+.\scripts\verify.ps1
+
 # Lint
 .\scripts\lint.ps1
 
@@ -89,11 +92,18 @@ Use `-Verbose` or `-Trace` to output full diagnostic details, or `-Json` for mac
 ```
 
 ### Git hooks
-Set up the pre-commit hook so lint/test/build run before each commit:
+Set up the pre-commit hook so verification runs before each commit:
 
 ```powershell
 .\scripts\setup-hooks.ps1
 ```
+
+## Documentation
+- [CHANGELOG.md](CHANGELOG.md)
+- [CONTRIBUTING.md](CONTRIBUTING.md)
+- [LICENSE](LICENSE)
+- [SECURITY.md](SECURITY.md)
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 
 ## Environment variables
 None.

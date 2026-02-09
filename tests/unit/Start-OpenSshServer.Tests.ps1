@@ -1,4 +1,4 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 
 Describe 'Invoke-OpenSshServerStartup' {
     BeforeAll {
@@ -16,38 +16,39 @@ Describe 'Invoke-OpenSshServerStartup' {
 
         $script:BuildDefaultDependencies = {
             @{
-                TestPath = { param($Path) $null = $Path; $true }
-                GetChildItem = { param($Path) $null = $Path; @([pscustomobject]@{ Name = 'ssh_host_rsa_key' }) }
-                GetCommand = {
+                TestPath                = { param($Path) $null = $Path; $true }
+                GetChildItem            = { param($Path) $null = $Path; @([pscustomobject]@{ Name = 'ssh_host_rsa_key' }) }
+                GetCommand              = {
                     param($Name)
                     if ($Name -eq 'sudo') { return $null }
                     @{ Name = $Name }
                 }
-                GetService = {
+                GetService              = {
                     param($Name)
                     if ($Name -eq 'MpsSvc' -or $Name -eq 'sshd') {
                         return [pscustomobject]@{ Status = 'Running' }
                     }
                     throw "Unexpected service name: $Name"
                 }
-                StartService = { param($Name) $null = $Name }
-                GetFirewallRule = { param($DisplayName) $null = $DisplayName; [pscustomobject]@{ Enabled = 'True' } }
-                GetFirewallPortFilter = { param($Rule) $null = $Rule; @([pscustomobject]@{ Protocol = 'TCP'; LocalPort = 22 }) }
-                EnableFirewallRule = { param($DisplayName) $null = $DisplayName }
-                SetFirewallRule = { param($DisplayName, $Port) $null = $DisplayName; $null = $Port }
-                NewFirewallRule = { param($DisplayName, $Port) $null = $DisplayName; $null = $Port }
-                GetNetTcpConnection = { param($Port) $null = $Port; @([pscustomobject]@{ OwningProcess = 123 }) }
-                GetProcess = { param($Id) $null = $Id; [pscustomobject]@{ ProcessName = 'sshd' } }
-                AddWindowsCapability = { }
-                AddWindowsFeature = { }
+                StartService            = { param($Name) $null = $Name }
+                GetFirewallRule         = { param($DisplayName) $null = $DisplayName; [pscustomobject]@{ Enabled = 'True' } }
+                GetFirewallPortFilter   = { param($Rule) $null = $Rule; @([pscustomobject]@{ Protocol = 'TCP'; LocalPort = 22 }) }
+                EnableFirewallRule      = { param($DisplayName) $null = $DisplayName }
+                SetFirewallRule         = { param($DisplayName, $Port) $null = $DisplayName; $null = $Port }
+                NewFirewallRule         = { param($DisplayName, $Port) $null = $DisplayName; $null = $Port }
+                GetNetTcpConnection     = { param($Port) $null = $Port; @([pscustomobject]@{ OwningProcess = 123 }) }
+                GetProcess              = { param($Id) $null = $Id; [pscustomobject]@{ ProcessName = 'sshd' } }
+                AddWindowsCapability    = { }
+                AddWindowsFeature       = { }
                 RepairWindowsCapability = { }
-                RunSshKeygen = { param($Path) $null = $Path }
-                IsAdmin = { $true }
-                Elevate = {
+                RunSshKeygen            = { param($Path) $null = $Path }
+                IsAdmin                 = { $true }
+                IsUserInteractive       = { $true }
+                Elevate                 = {
                     param($ExePath, $ArgumentList)
                     $script:ElevateArgs = @($ExePath) + $ArgumentList
                 }
-                RunSudo = {
+                RunSudo                 = {
                     param($ExePath, $ArgumentList)
                     $script:SudoArgs = @($ExePath) + $ArgumentList
                 }
@@ -81,7 +82,7 @@ Describe 'Invoke-OpenSshServerStartup' {
 
         It 'attempts autofix by default' {
             $result = Invoke-StartupSilenced -Arguments @{
-                Quiet = $true
+                Quiet        = $true
                 Dependencies = $script:CurrentDependencies
             }
             $result.status | Should -Be 'error'
@@ -90,8 +91,8 @@ Describe 'Invoke-OpenSshServerStartup' {
 
         It 'does not autofix when NoAutoFix is set' {
             $result = Invoke-StartupSilenced -Arguments @{
-                NoAutoFix = $true
-                Quiet = $true
+                NoAutoFix    = $true
+                Quiet        = $true
                 Dependencies = $script:CurrentDependencies
             }
             $result.status | Should -Be 'error'
@@ -112,7 +113,7 @@ Describe 'Invoke-OpenSshServerStartup' {
 
         It 'returns an error for missing OpenSSH binaries' {
             $result = Invoke-StartupSilenced -Arguments @{
-                Quiet = $true
+                Quiet        = $true
                 Dependencies = $script:CurrentDependencies
             }
             $result.status | Should -Be 'error'
@@ -134,8 +135,8 @@ Describe 'Invoke-OpenSshServerStartup' {
 
         It 'requests elevation when AutoFix requires admin' {
             $result = Invoke-StartupSilenced -Arguments @{
-                AutoFix = $true
-                Quiet = $true
+                AutoFix      = $true
+                Quiet        = $true
                 Dependencies = $script:CurrentDependencies
             }
             $result.status | Should -Be 'pending'
@@ -165,8 +166,8 @@ Describe 'Invoke-OpenSshServerStartup' {
 
         It 'returns an error when AutoFix is declined' {
             $result = Invoke-StartupSilenced -Arguments @{
-                AutoFix = $true
-                Quiet = $true
+                AutoFix      = $true
+                Quiet        = $true
                 Dependencies = $script:CurrentDependencies
             }
             $result.status | Should -Be 'error'
@@ -175,8 +176,8 @@ Describe 'Invoke-OpenSshServerStartup' {
 
         It 'uses a clear confirmation message' {
             $null = Invoke-StartupSilenced -Arguments @{
-                AutoFix = $true
-                Quiet = $true
+                AutoFix      = $true
+                Quiet        = $true
                 Dependencies = $script:CurrentDependencies
             }
             $script:CapturedConfirmMessage | Should -Match 'Issue detected'
@@ -203,8 +204,8 @@ Describe 'Invoke-OpenSshServerStartup' {
 
         It 'retries the failing check after AutoFix' {
             $result = Invoke-StartupSilenced -Arguments @{
-                AutoFix = $true
-                Quiet = $true
+                AutoFix      = $true
+                Quiet        = $true
                 Dependencies = $script:CurrentDependencies
             }
             $result.status | Should -Be 'success'
@@ -220,7 +221,7 @@ Describe 'Invoke-OpenSshServerStartup' {
 
         It 'returns an error when the SSH port is in use' {
             $result = Invoke-StartupSilenced -Arguments @{
-                Quiet = $true
+                Quiet        = $true
                 Dependencies = $script:CurrentDependencies
             }
             $result.status | Should -Be 'error'
@@ -250,11 +251,11 @@ Describe 'Confirm-AutoFix (Start)' {
 
     It 'treats empty input as yes' {
         Mock Read-Host { '' }
-        Confirm-AutoFix -Message 'Test' -Yes:$false | Should -BeTrue
+        Confirm-AutoFix -Message 'Test' -Yes:$false -IsUserInteractive $true | Should -BeTrue
     }
 
     It 'treats n input as no' {
         Mock Read-Host { 'n' }
-        Confirm-AutoFix -Message 'Test' -Yes:$false | Should -BeFalse
+        Confirm-AutoFix -Message 'Test' -Yes:$false -IsUserInteractive $true | Should -BeFalse
     }
 }

@@ -1,4 +1,4 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 
 $moduleRoot = Split-Path -Parent $PSCommandPath
 

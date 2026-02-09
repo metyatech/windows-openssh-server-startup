@@ -1,4 +1,4 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 
 function Get-OpenSshServerResultSummary {
     param(
@@ -11,7 +11,7 @@ function Get-OpenSshServerResultSummary {
 
     $summary = [ordered]@{
         version = $Result.version
-        status = $Result.status
+        status  = $Result.status
     }
 
     if ($Result.PSObject.Properties.Match('started').Count -gt 0) {
@@ -27,19 +27,23 @@ function Get-OpenSshServerResultSummary {
         'success' {
             if ($summary.Contains('started') -and $summary.started) {
                 $summaryMessage = 'OpenSSH Server is running.'
-            } elseif ($summary.Contains('stopped') -and $summary.stopped) {
+            }
+            elseif ($summary.Contains('stopped') -and $summary.stopped) {
                 $summaryMessage = 'OpenSSH Server is stopped.'
-            } elseif ($Operation -eq 'start') {
+            }
+            elseif ($Operation -eq 'start') {
                 $summaryMessage = 'OpenSSH Server start completed.'
-            } else {
+            }
+            else {
                 $summaryMessage = 'OpenSSH Server stop completed.'
             }
         }
         'pending' {
-            $pending = $Result.warnings | Where-Object id -eq 'pending_elevation' | Select-Object -First 1
+            $pending = $Result.warnings | Where-Object id -EQ 'pending_elevation' | Select-Object -First 1
             if ($null -ne $pending -and $pending.PSObject.Properties.Match('message').Count -gt 0) {
                 $summaryMessage = $pending.message
-            } else {
+            }
+            else {
                 $summaryMessage = 'Operation is pending. Rerun the command to confirm.'
             }
         }
@@ -47,7 +51,8 @@ function Get-OpenSshServerResultSummary {
             $firstError = $Result.errors | Select-Object -First 1
             if ($null -ne $firstError -and $firstError.PSObject.Properties.Match('message').Count -gt 0) {
                 $summaryMessage = $firstError.message
-            } else {
+            }
+            else {
                 $summaryMessage = 'Operation failed. Use -Verbose or -Trace for details.'
             }
         }
@@ -90,7 +95,7 @@ function Test-OpenSshServerResultSuppressSummary {
     }
 
     if ($stopped -and $actionsCount -eq 0 -and $errorsCount -eq 0) {
-        $stopWarnings = @($Result.warnings | Where-Object id -eq 'sshd_not_running')
+        $stopWarnings = @($Result.warnings | Where-Object id -EQ 'sshd_not_running')
         if ($stopWarnings.Count -gt 0 -and $warningsCount -eq $stopWarnings.Count) {
             return $true
         }

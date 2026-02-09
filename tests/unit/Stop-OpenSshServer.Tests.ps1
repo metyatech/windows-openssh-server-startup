@@ -1,4 +1,4 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 
 Describe 'Invoke-OpenSshServerStop' {
     BeforeAll {
@@ -17,30 +17,31 @@ Describe 'Invoke-OpenSshServerStop' {
         $script:BuildDefaultDependencies = {
             $script:serviceStatus = 'Running'
             @{
-                GetCommand = {
+                GetCommand          = {
                     param($Name)
                     if ($Name -eq 'sudo') { return $null }
                     @{ Name = $Name }
                 }
-                GetService = {
+                GetService          = {
                     param($Name)
                     if ($Name -ne 'sshd') { throw "Unexpected service name: $Name" }
                     [pscustomobject]@{ Status = $script:serviceStatus }
                 }
-                StopService = {
+                StopService         = {
                     param($Name, $Force)
                     $null = $Name
                     $null = $Force
                     $script:serviceStatus = 'Stopped'
                 }
                 GetNetTcpConnection = { param($Port) $null = $Port; @() }
-                GetProcess = { param($Id) $null = $Id; [pscustomobject]@{ ProcessName = 'sshd' } }
-                IsAdmin = { $true }
-                Elevate = {
+                GetProcess          = { param($Id) $null = $Id; [pscustomobject]@{ ProcessName = 'sshd' } }
+                IsAdmin             = { $true }
+                IsUserInteractive   = { $true }
+                Elevate             = {
                     param($ExePath, $ArgumentList)
                     $script:ElevateArgs = @($ExePath) + $ArgumentList
                 }
-                RunSudo = {
+                RunSudo             = {
                     param($ExePath, $ArgumentList)
                     $script:SudoArgs = @($ExePath) + $ArgumentList
                 }
@@ -68,7 +69,7 @@ Describe 'Invoke-OpenSshServerStop' {
 
         It 'returns an error when sshd service is missing' {
             $result = Invoke-StopSilenced -Arguments @{
-                Quiet = $true
+                Quiet        = $true
                 Dependencies = $script:CurrentDependencies
             }
             $result.status | Should -Be 'error'
@@ -97,7 +98,7 @@ Describe 'Invoke-OpenSshServerStop' {
 
         It 'returns an error when stop fails' {
             $result = Invoke-StopSilenced -Arguments @{
-                Quiet = $true
+                Quiet        = $true
                 Dependencies = $script:CurrentDependencies
             }
             $result.status | Should -Be 'error'
@@ -114,7 +115,7 @@ Describe 'Invoke-OpenSshServerStop' {
 
         It 'returns an error when sshd is still listening' {
             $result = Invoke-StopSilenced -Arguments @{
-                Quiet = $true
+                Quiet        = $true
                 Dependencies = $script:CurrentDependencies
             }
             $result.status | Should -Be 'error'
@@ -132,7 +133,7 @@ Describe 'Invoke-OpenSshServerStop' {
         It 'returns requires_admin when elevation is declined' {
             Mock Confirm-AutoFix { $false }
             $result = Invoke-StopSilenced -Arguments @{
-                Quiet = $true
+                Quiet        = $true
                 Dependencies = $script:CurrentDependencies
             }
             $result.status | Should -Be 'error'
@@ -142,7 +143,7 @@ Describe 'Invoke-OpenSshServerStop' {
         It 'requests elevation when not elevated' {
             Mock Confirm-AutoFix { $true }
             $result = Invoke-StopSilenced -Arguments @{
-                Quiet = $true
+                Quiet        = $true
                 Dependencies = $script:CurrentDependencies
             }
             $result.status | Should -Be 'pending'
@@ -161,11 +162,11 @@ Describe 'Confirm-AutoFix (Stop)' {
 
     It 'treats empty input as yes' {
         Mock Read-Host { '' }
-        Confirm-AutoFix -Message 'Test' -Yes:$false | Should -BeTrue
+        Confirm-AutoFix -Message 'Test' -Yes:$false -IsUserInteractive $true | Should -BeTrue
     }
 
     It 'treats n input as no' {
         Mock Read-Host { 'n' }
-        Confirm-AutoFix -Message 'Test' -Yes:$false | Should -BeFalse
+        Confirm-AutoFix -Message 'Test' -Yes:$false -IsUserInteractive $true | Should -BeFalse
     }
 }

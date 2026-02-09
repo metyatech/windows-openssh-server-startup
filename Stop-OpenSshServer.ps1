@@ -1,4 +1,4 @@
-<#PSScriptInfo
+﻿<#PSScriptInfo
 .VERSION 0.3.7
 .GUID d6e03cb4-a92f-4550-bdda-81093864c6a4
 .AUTHOR metyatech
@@ -41,11 +41,13 @@ $result = Invoke-OpenSshServerStop @PSBoundParameters
 
 if ($Json) {
     Write-Output ($result | ConvertTo-Json -Depth 6)
-} else {
+}
+else {
     $wantsDetailed = $Trace -or $Quiet -or ($VerbosePreference -ne 'SilentlyContinue')
     if ($wantsDetailed) {
         Write-Output $result
-    } else {
+    }
+    else {
         if (-not (Test-OpenSshServerResultSuppressSummary -Result $result)) {
             Write-Output (Get-OpenSshServerResultSummary -Result $result -Operation 'stop')
         }

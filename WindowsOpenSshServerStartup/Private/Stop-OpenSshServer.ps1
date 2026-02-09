@@ -1,4 +1,4 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 
 function Get-OpenSshServerStopVersion {
     '0.3.7'
@@ -41,14 +41,17 @@ function Confirm-AutoFix {
         [Parameter(Mandatory)]
         [string]$Message,
         [Parameter(Mandatory)]
-        [bool]$Yes
+        [bool]$Yes,
+        [Parameter(DontShow)]
+        $IsUserInteractive = $null
     )
 
     if ($Yes) {
         return $true
     }
 
-    if (-not [Environment]::UserInteractive) {
+    $interactive = if ($null -ne $IsUserInteractive) { $IsUserInteractive } else { [Environment]::UserInteractive }
+    if (-not $interactive) {
         return $false
     }
 
@@ -77,11 +80,13 @@ function Get-InvocationArgumentList {
             if ($value.IsPresent) {
                 $argumentList += "-$key"
             }
-        } elseif ($value -is [bool]) {
+        }
+        elseif ($value -is [bool]) {
             if ($value) {
                 $argumentList += "-$key"
             }
-        } else {
+        }
+        else {
             $argumentList += "-$key"
             $argumentList += "$value"
         }
@@ -90,17 +95,18 @@ function Get-InvocationArgumentList {
 }
 
 $script:OpenSshStopDependencies = @{
-    GetCommand = { param($Name) Get-Command -Name $Name -ErrorAction SilentlyContinue }
-    GetService = { param($Name) Get-Service -Name $Name -ErrorAction Stop }
-    StopService = { param($Name, $Force) Stop-Service -Name $Name -Force:$Force -ErrorAction Stop }
+    GetCommand          = { param($Name) Get-Command -Name $Name -ErrorAction SilentlyContinue }
+    GetService          = { param($Name) Get-Service -Name $Name -ErrorAction Stop }
+    StopService         = { param($Name, $Force) Stop-Service -Name $Name -Force:$Force -ErrorAction Stop }
     GetNetTcpConnection = { param($Port) Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue }
-    GetProcess = { param($Id) Get-Process -Id $Id -ErrorAction Stop }
-    IsAdmin = { Test-IsAdmin }
-    Elevate = {
+    GetProcess          = { param($Id) Get-Process -Id $Id -ErrorAction Stop }
+    IsAdmin             = { Test-IsAdmin }
+    IsUserInteractive   = { [Environment]::UserInteractive }
+    Elevate             = {
         param($ExePath, $ArgumentList)
         Start-Process -FilePath $ExePath -ArgumentList $ArgumentList -Verb RunAs | Out-Null
     }
-    RunSudo = {
+    RunSudo             = {
         param($ExePath, $ArgumentList)
         & sudo -- $ExePath @ArgumentList
     }
@@ -108,13 +114,13 @@ $script:OpenSshStopDependencies = @{
 
 function Get-StopResult {
     [pscustomobject]@{
-        version = Get-OpenSshServerStopVersion
-        status = 'success'
-        stopped = $false
-        checks = @()
-        actions = @()
+        version  = Get-OpenSshServerStopVersion
+        status   = 'success'
+        stopped  = $false
+        checks   = @()
+        actions  = @()
         warnings = @()
-        errors = @()
+        errors   = @()
     }
 }
 
@@ -206,11 +212,11 @@ function Invoke-OpenSshServerStop {
         )
 
         Add-ResultItem -Result $result -Collection 'checks' -Item ([pscustomobject]@{
-            id = $Id
-            status = $Status
-            message = $Message
-            remediation = $Remediation
-        })
+                id          = $Id
+                status      = $Status
+                message     = $Message
+                remediation = $Remediation
+            })
     }
 
     function Register-Action {
@@ -220,9 +226,9 @@ function Invoke-OpenSshServerStop {
         )
 
         Add-ResultItem -Result $result -Collection 'actions' -Item ([pscustomobject]@{
-            action = $Action
-            details = $Details
-        })
+                action  = $Action
+                details = $Details
+            })
     }
 
     function Register-Error {
@@ -234,10 +240,10 @@ function Invoke-OpenSshServerStop {
 
         $result.status = 'error'
         Add-ResultItem -Result $result -Collection 'errors' -Item ([pscustomobject]@{
-            id = $Id
-            message = $Message
-            remediation = $Remediation
-        })
+                id          = $Id
+                message     = $Message
+                remediation = $Remediation
+            })
         Write-StopLog -Level 'Error' -Message $Message
         if ($Remediation) {
             Write-StopLog -Level 'Error' -Message "Remediation: $Remediation"
@@ -251,9 +257,9 @@ function Invoke-OpenSshServerStop {
         )
 
         Add-ResultItem -Result $result -Collection 'warnings' -Item ([pscustomobject]@{
-            id = $Id
-            message = $Message
-        })
+                id      = $Id
+                message = $Message
+            })
         Write-StopLog -Level 'Warning' -Message $Message
     }
 
@@ -269,7 +275,7 @@ function Invoke-OpenSshServerStop {
         }
 
         $confirmMessage = "Administrator privileges required to $Reason. Relaunch as Administrator now?"
-        if (-not (Confirm-AutoFix -Message $confirmMessage -Yes:$Yes)) {
+        if (-not (Confirm-AutoFix -Message $confirmMessage -Yes:$Yes -IsUserInteractive (& $deps.IsUserInteractive))) {
             Register-Error -Id 'requires_admin' -Message "Administrator privileges required to $Reason." -Remediation 'Start PowerShell as Administrator and rerun.'
             return $false
         }
@@ -307,14 +313,16 @@ function Invoke-OpenSshServerStop {
                 $usedSudo = $true
                 Register-Action -Action 'elevate' -Details 'Relaunched with sudo.'
                 Register-Warning -Id 'relaunching_elevated' -Message 'Elevated command launched via sudo.'
-            } else {
+            }
+            else {
                 $sudoMessage = "sudo detected at '$($sudoCommand.Source)' but failed with exit code $sudoExitCode."
                 if ($sudoOutput) {
                     $sudoMessage = "$sudoMessage Output: $sudoOutput"
                 }
                 Register-Warning -Id 'sudo_failed' -Message $sudoMessage
             }
-        } else {
+        }
+        else {
             Register-Warning -Id 'sudo_not_found' -Message 'sudo was not found in PATH; falling back to a new elevated window.'
         }
 
@@ -351,7 +359,8 @@ function Invoke-OpenSshServerStop {
                 Register-Check -Id $Id -Status 'ok' -Message $Description -Remediation ''
                 return
             }
-        } catch {
+        }
+        catch {
             Write-StopLog -Level 'Verbose' -Message "Check '$Id' threw: $($_.Exception.Message)"
         }
 
@@ -380,7 +389,8 @@ function Invoke-OpenSshServerStop {
         if ($service.Status -ne 'Running') {
             Register-Warning -Id 'sshd_not_running' -Message "OpenSSH Server service 'sshd' is already stopped."
             $result.stopped = $true
-        } else {
+        }
+        else {
             if (-not (& $deps.IsAdmin)) {
                 $null = Request-Elevation -Reason 'stop the OpenSSH Server service'
                 return $result
@@ -390,7 +400,8 @@ function Invoke-OpenSshServerStop {
                 try {
                     & $deps.StopService 'sshd' $Force
                     Register-Action -Action 'sshd_stop' -Details 'Stopped OpenSSH Server service.'
-                } catch {
+                }
+                catch {
                     Register-Error -Id 'sshd_stop_failed' -Message "Failed to stop OpenSSH Server service: $($_.Exception.Message)" -Remediation 'Check service permissions and retry.'
                     return $result
                 }
@@ -416,7 +427,8 @@ function Invoke-OpenSshServerStop {
                     if ($proc.ProcessName -eq 'sshd') {
                         return $false
                     }
-                } catch {
+                }
+                catch {
                     return $false
                 }
             }
@@ -424,7 +436,8 @@ function Invoke-OpenSshServerStop {
         } -FailureMessage "sshd is still listening on TCP port $Port after stop." -Remediation 'Check for lingering sshd processes and terminate them if necessary.'
 
         Write-StopLog -Message 'OpenSSH Server is stopped.' -Level 'Info'
-    } catch {
+    }
+    catch {
         if ($script:ElevationRequested) {
             return $result
         }
