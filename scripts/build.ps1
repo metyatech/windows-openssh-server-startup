@@ -1,4 +1,4 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
 $scriptPath = Join-Path $repoRoot 'Start-OpenSshServer.ps1'

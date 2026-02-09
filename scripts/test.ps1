@@ -18,5 +18,6 @@ $config.Run.Path = $testsPath
 $config.TestResult.Enabled = $true
 $config.TestResult.OutputPath = $testResultsFile
 $config.TestResult.OutputFormat = 'NUnitXml'
+$config.Run.Exit = $true # Make Pester exit with non-zero code on failure
 
 Invoke-Pester -Configuration $config

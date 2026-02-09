@@ -1,4 +1,4 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 
 function Get-OpenSshServerStartupVersion {
     '0.3.7'
@@ -43,14 +43,17 @@ function Confirm-AutoFix {
         [Parameter(Mandatory)]
         [string]$Message,
         [Parameter(Mandatory)]
-        [bool]$Yes
+        [bool]$Yes,
+        [Parameter(DontShow)]
+        $IsUserInteractive = $null
     )
 
     if ($Yes) {
         return $true
     }
 
-    if (-not [Environment]::UserInteractive) {
+    $interactive = if ($null -ne $IsUserInteractive) { $IsUserInteractive } else { [Environment]::UserInteractive }
+    if (-not $interactive) {
         return $false
     }
 
@@ -79,11 +82,13 @@ function Get-InvocationArgumentList {
             if ($value.IsPresent) {
                 $argumentList += "-$key"
             }
-        } elseif ($value -is [bool]) {
+        }
+        elseif ($value -is [bool]) {
             if ($value) {
                 $argumentList += "-$key"
             }
-        } else {
+        }
+        else {
             $argumentList += "-$key"
             $argumentList += "$value"
         }
@@ -92,28 +97,29 @@ function Get-InvocationArgumentList {
 }
 
 $script:OpenSshStartupDependencies = @{
-    TestPath = { param($Path) Test-Path $Path }
-    GetChildItem = { param($Path) Get-ChildItem -Path $Path -ErrorAction SilentlyContinue }
-    GetCommand = { param($Name) Get-Command -Name $Name -ErrorAction SilentlyContinue }
-    GetService = { param($Name) Get-Service -Name $Name -ErrorAction Stop }
-    StartService = { param($Name) Start-Service -Name $Name -ErrorAction Stop }
-    GetFirewallRule = { param($DisplayName) Get-NetFirewallRule -DisplayName $DisplayName -ErrorAction SilentlyContinue }
-    GetFirewallPortFilter = { param($Rule) $Rule | Get-NetFirewallPortFilter }
-    EnableFirewallRule = { param($DisplayName) Enable-NetFirewallRule -DisplayName $DisplayName | Out-Null }
-    SetFirewallRule = { param($DisplayName, $Port) Set-NetFirewallRule -DisplayName $DisplayName -Direction Inbound -Action Allow -Protocol TCP -LocalPort $Port -Profile Any | Out-Null }
-    NewFirewallRule = { param($DisplayName, $Port) New-NetFirewallRule -DisplayName $DisplayName -Direction Inbound -Action Allow -Protocol TCP -LocalPort $Port -Profile Any | Out-Null }
-    GetNetTcpConnection = { param($Port) Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue }
-    GetProcess = { param($Id) Get-Process -Id $Id -ErrorAction Stop }
-    AddWindowsCapability = { Add-WindowsCapability -Online -Name 'OpenSSH.Server~~~~0.0.1.0' -ErrorAction Stop | Out-Null }
-    AddWindowsFeature = { Add-WindowsFeature -Name 'OpenSSH-Server' -IncludeAllSubFeature -ErrorAction Stop | Out-Null }
+    TestPath                = { param($Path) Test-Path $Path }
+    GetChildItem            = { param($Path) Get-ChildItem -Path $Path -ErrorAction SilentlyContinue }
+    GetCommand              = { param($Name) Get-Command -Name $Name -ErrorAction SilentlyContinue }
+    GetService              = { param($Name) Get-Service -Name $Name -ErrorAction Stop }
+    StartService            = { param($Name) Start-Service -Name $Name -ErrorAction Stop }
+    GetFirewallRule         = { param($DisplayName) Get-NetFirewallRule -DisplayName $DisplayName -ErrorAction SilentlyContinue }
+    GetFirewallPortFilter   = { param($Rule) $Rule | Get-NetFirewallPortFilter }
+    EnableFirewallRule      = { param($DisplayName) Enable-NetFirewallRule -DisplayName $DisplayName | Out-Null }
+    SetFirewallRule         = { param($DisplayName, $Port) Set-NetFirewallRule -DisplayName $DisplayName -Direction Inbound -Action Allow -Protocol TCP -LocalPort $Port -Profile Any | Out-Null }
+    NewFirewallRule         = { param($DisplayName, $Port) New-NetFirewallRule -DisplayName $DisplayName -Direction Inbound -Action Allow -Protocol TCP -LocalPort $Port -Profile Any | Out-Null }
+    GetNetTcpConnection     = { param($Port) Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue }
+    GetProcess              = { param($Id) Get-Process -Id $Id -ErrorAction Stop }
+    AddWindowsCapability    = { Add-WindowsCapability -Online -Name 'OpenSSH.Server~~~~0.0.1.0' -ErrorAction Stop | Out-Null }
+    AddWindowsFeature       = { Add-WindowsFeature -Name 'OpenSSH-Server' -IncludeAllSubFeature -ErrorAction Stop | Out-Null }
     RepairWindowsCapability = { Repair-WindowsCapability -Online -Name 'OpenSSH.Server~~~~0.0.1.0' -ErrorAction Stop | Out-Null }
-    RunSshKeygen = { param($Path) & $Path -A | Out-Null }
-    IsAdmin = { Test-IsAdmin }
-    Elevate = {
+    RunSshKeygen            = { param($Path) & $Path -A | Out-Null }
+    IsAdmin                 = { Test-IsAdmin }
+    IsUserInteractive       = { [Environment]::UserInteractive }
+    Elevate                 = {
         param($ExePath, $ArgumentList)
         Start-Process -FilePath $ExePath -ArgumentList $ArgumentList -Verb RunAs | Out-Null
     }
-    RunSudo = {
+    RunSudo                 = {
         param($ExePath, $ArgumentList)
         & sudo -- $ExePath @ArgumentList
     }
@@ -121,13 +127,13 @@ $script:OpenSshStartupDependencies = @{
 
 function Get-StartupResult {
     [pscustomobject]@{
-        version = Get-OpenSshServerStartupVersion
-        status = 'success'
-        started = $false
-        checks = @()
-        actions = @()
+        version  = Get-OpenSshServerStartupVersion
+        status   = 'success'
+        started  = $false
+        checks   = @()
+        actions  = @()
         warnings = @()
-        errors = @()
+        errors   = @()
     }
 }
 
@@ -231,9 +237,9 @@ function Invoke-OpenSshServerStartup {
         )
 
         $item = [pscustomobject]@{
-            id = $Id
-            status = $Status
-            message = $Message
+            id          = $Id
+            status      = $Status
+            message     = $Message
             remediation = $Remediation
         }
         Add-ResultItem -Result $result -Collection 'checks' -Item $item
@@ -246,9 +252,9 @@ function Invoke-OpenSshServerStartup {
         )
 
         Add-ResultItem -Result $result -Collection 'actions' -Item ([pscustomobject]@{
-            action = $Action
-            details = $Details
-        })
+                action  = $Action
+                details = $Details
+            })
     }
 
     function Register-Error {
@@ -260,10 +266,10 @@ function Invoke-OpenSshServerStartup {
 
         $result.status = 'error'
         Add-ResultItem -Result $result -Collection 'errors' -Item ([pscustomobject]@{
-            id = $Id
-            message = $Message
-            remediation = $Remediation
-        })
+                id          = $Id
+                message     = $Message
+                remediation = $Remediation
+            })
         Write-StartupLog -Level 'Error' -Message $Message
         if ($Remediation) {
             Write-StartupLog -Level 'Error' -Message "Remediation: $Remediation"
@@ -277,9 +283,9 @@ function Invoke-OpenSshServerStartup {
         )
 
         Add-ResultItem -Result $result -Collection 'warnings' -Item ([pscustomobject]@{
-            id = $Id
-            message = $Message
-        })
+                id      = $Id
+                message = $Message
+            })
         Write-StartupLog -Level 'Warning' -Message $Message
     }
 
@@ -295,7 +301,7 @@ function Invoke-OpenSshServerStartup {
         }
 
         $confirmMessage = "Administrator privileges required to $Reason. Relaunch as Administrator now?"
-        if (-not (Confirm-AutoFix -Message $confirmMessage -Yes:$Yes)) {
+        if (-not (Confirm-AutoFix -Message $confirmMessage -Yes:$Yes -IsUserInteractive (& $deps.IsUserInteractive))) {
             Register-Error -Id 'requires_admin' -Message "Administrator privileges required to $Reason." -Remediation 'Start PowerShell as Administrator and rerun.'
             return $false
         }
@@ -333,14 +339,16 @@ function Invoke-OpenSshServerStartup {
                 $usedSudo = $true
                 Register-Action -Action 'elevate' -Details 'Relaunched with sudo.'
                 Register-Warning -Id 'relaunching_elevated' -Message 'Elevated command launched via sudo.'
-            } else {
+            }
+            else {
                 $sudoMessage = "sudo detected at '$($sudoCommand.Source)' but failed with exit code $sudoExitCode."
                 if ($sudoOutput) {
                     $sudoMessage = "$sudoMessage Output: $sudoOutput"
                 }
                 Register-Warning -Id 'sudo_failed' -Message $sudoMessage
             }
-        } else {
+        }
+        else {
             Register-Warning -Id 'sudo_not_found' -Message 'sudo was not found in PATH; falling back to a new elevated window.'
         }
 
@@ -381,7 +389,8 @@ function Invoke-OpenSshServerStartup {
                     Register-Check -Id $Id -Status 'ok' -Message $Description -Remediation ''
                     return
                 }
-            } catch {
+            }
+            catch {
                 Write-StartupLog -Level 'Verbose' -Message "Check '$Id' threw: $($_.Exception.Message)"
             }
 
@@ -389,7 +398,8 @@ function Invoke-OpenSshServerStartup {
                 if (-not (& $deps.IsAdmin)) {
                     $adminMessage = if ($Id -eq 'sshd_running') {
                         "Issue detected ($Id): OpenSSH Server is not running. Administrator privileges are required to start it."
-                    } else {
+                    }
+                    else {
                         "Issue detected ($Id): $FailureMessage Administrator privileges are required to apply automatic remediation."
                     }
                     Register-Warning -Id 'autofix_requires_admin' -Message $adminMessage
@@ -400,7 +410,7 @@ function Invoke-OpenSshServerStartup {
                 }
 
                 $confirmMessage = "Issue detected ($Id): $FailureMessage Apply automatic remediation now?"
-                if (-not (Confirm-AutoFix -Message $confirmMessage -Yes:$Yes)) {
+                if (-not (Confirm-AutoFix -Message $confirmMessage -Yes:$Yes -IsUserInteractive (& $deps.IsUserInteractive))) {
                     Register-Error -Id $Id -Message $FailureMessage -Remediation 'Rerun with -AutoFix -Yes to allow automatic remediation.'
                     throw 'AutoFixDeclined'
                 }
@@ -409,7 +419,8 @@ function Invoke-OpenSshServerStartup {
                     try {
                         & $Fix
                         Register-Action -Action $Id -Details 'Applied automatic remediation.'
-                    } catch {
+                    }
+                    catch {
                         Register-Error -Id $Id -Message "Automatic remediation failed: $($_.Exception.Message)" -Remediation 'Resolve the issue manually and rerun the script.'
                         throw
                     }
@@ -444,9 +455,11 @@ function Invoke-OpenSshServerStartup {
         } -Fix {
             if (& $deps.GetCommand 'Add-WindowsCapability') {
                 & $deps.AddWindowsCapability
-            } elseif (& $deps.GetCommand 'Add-WindowsFeature') {
+            }
+            elseif (& $deps.GetCommand 'Add-WindowsFeature') {
                 & $deps.AddWindowsFeature
-            } else {
+            }
+            else {
                 throw 'OpenSSH installation commands are unavailable.'
             }
         } -FailureMessage "OpenSSH Server is not installed. Missing binary: $sshdPath" -Remediation "Install OpenSSH Server (Add-WindowsCapability -Online -Name 'OpenSSH.Server~~~~0.0.1.0') and rerun."
@@ -457,9 +470,11 @@ function Invoke-OpenSshServerStartup {
         } -Fix {
             if (& $deps.GetCommand 'Add-WindowsCapability') {
                 & $deps.AddWindowsCapability
-            } elseif (& $deps.GetCommand 'Add-WindowsFeature') {
+            }
+            elseif (& $deps.GetCommand 'Add-WindowsFeature') {
                 & $deps.AddWindowsFeature
-            } else {
+            }
+            else {
                 throw 'OpenSSH installation commands are unavailable.'
             }
         } -FailureMessage "OpenSSH Server service 'sshd' is not installed." -Remediation "Install OpenSSH Server and ensure the 'sshd' service exists."
@@ -469,7 +484,8 @@ function Invoke-OpenSshServerStartup {
         } -Fix {
             if (& $deps.GetCommand 'Repair-WindowsCapability') {
                 & $deps.RepairWindowsCapability
-            } else {
+            }
+            else {
                 throw 'OpenSSH configuration file missing and repair command unavailable.'
             }
         } -FailureMessage "OpenSSH configuration file is missing: $configPath" -Remediation 'Reinstall or repair OpenSSH Server to restore sshd_config.'
@@ -514,7 +530,8 @@ function Invoke-OpenSshServerStartup {
             $rule = & $deps.GetFirewallRule $FirewallRuleName
             if (-not $rule) {
                 & $deps.NewFirewallRule $FirewallRuleName $Port
-            } else {
+            }
+            else {
                 & $deps.EnableFirewallRule $FirewallRuleName
                 & $deps.SetFirewallRule $FirewallRuleName $Port
             }
@@ -535,7 +552,8 @@ function Invoke-OpenSshServerStartup {
                     if ($proc.ProcessName -ne 'sshd') {
                         return $false
                     }
-                } catch {
+                }
+                catch {
                     return $false
                 }
             }
@@ -560,7 +578,8 @@ function Invoke-OpenSshServerStartup {
                     if ($proc.ProcessName -eq 'sshd') {
                         return $true
                     }
-                } catch {
+                }
+                catch {
                     return $false
                 }
             }
@@ -569,7 +588,8 @@ function Invoke-OpenSshServerStartup {
 
         $result.started = $true
         Write-StartupLog -Message 'OpenSSH Server is running and ready.' -Level 'Info'
-    } catch {
+    }
+    catch {
         if ($script:ElevationRequested) {
             return $result
         }

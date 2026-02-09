@@ -1,4 +1,4 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 
 Describe 'WindowsOpenSshServerStartup module' {
     BeforeAll {
@@ -29,35 +29,36 @@ Describe 'WindowsOpenSshServerStartup module' {
         }
 
         $script:StartDependencies = @{
-            TestPath = { param($Path) $null = $Path; $true }
-            GetChildItem = { param($Path) $null = $Path; @([pscustomobject]@{ Name = 'ssh_host_rsa_key' }) }
-            GetCommand = {
+            TestPath                = { param($Path) $null = $Path; $true }
+            GetChildItem            = { param($Path) $null = $Path; @([pscustomobject]@{ Name = 'ssh_host_rsa_key' }) }
+            GetCommand              = {
                 param($Name)
                 if ($Name -eq 'sudo') { return $null }
                 @{ Name = $Name }
             }
-            GetService = {
+            GetService              = {
                 param($Name)
                 if ($Name -eq 'MpsSvc' -or $Name -eq 'sshd') {
                     return [pscustomobject]@{ Status = 'Running' }
                 }
                 throw "Unexpected service name: $Name"
             }
-            StartService = { param($Name) $null = $Name }
-            GetFirewallRule = { param($DisplayName) $null = $DisplayName; [pscustomobject]@{ Enabled = 'True' } }
-            GetFirewallPortFilter = { param($Rule) $null = $Rule; @([pscustomobject]@{ Protocol = 'TCP'; LocalPort = 22 }) }
-            EnableFirewallRule = { param($DisplayName) $null = $DisplayName }
-            SetFirewallRule = { param($DisplayName, $Port) $null = $DisplayName; $null = $Port }
-            NewFirewallRule = { param($DisplayName, $Port) $null = $DisplayName; $null = $Port }
-            GetNetTcpConnection = { param($Port) $null = $Port; @([pscustomobject]@{ OwningProcess = 123 }) }
-            GetProcess = { param($Id) $null = $Id; [pscustomobject]@{ ProcessName = 'sshd' } }
-            AddWindowsCapability = { }
-            AddWindowsFeature = { }
+            StartService            = { param($Name) $null = $Name }
+            GetFirewallRule         = { param($DisplayName) $null = $DisplayName; [pscustomobject]@{ Enabled = 'True' } }
+            GetFirewallPortFilter   = { param($Rule) $null = $Rule; @([pscustomobject]@{ Protocol = 'TCP'; LocalPort = 22 }) }
+            EnableFirewallRule      = { param($DisplayName) $null = $DisplayName }
+            SetFirewallRule         = { param($DisplayName, $Port) $null = $DisplayName; $null = $Port }
+            NewFirewallRule         = { param($DisplayName, $Port) $null = $DisplayName; $null = $Port }
+            GetNetTcpConnection     = { param($Port) $null = $Port; @([pscustomobject]@{ OwningProcess = 123 }) }
+            GetProcess              = { param($Id) $null = $Id; [pscustomobject]@{ ProcessName = 'sshd' } }
+            AddWindowsCapability    = { }
+            AddWindowsFeature       = { }
             RepairWindowsCapability = { }
-            RunSshKeygen = { param($Path) $null = $Path }
-            IsAdmin = { $true }
-            Elevate = { param($ExePath, $ArgumentList) $null = $ExePath; $null = $ArgumentList }
-            RunSudo = { param($ExePath, $ArgumentList) $null = $ExePath; $null = $ArgumentList }
+            RunSshKeygen            = { param($Path) $null = $Path }
+            IsAdmin                 = { $true }
+            IsUserInteractive       = { $true }
+            Elevate                 = { param($ExePath, $ArgumentList) $null = $ExePath; $null = $ArgumentList }
+            RunSudo                 = { param($ExePath, $ArgumentList) $null = $ExePath; $null = $ArgumentList }
         }
 
         $script:BuildDefaultDependencies = {
@@ -65,18 +66,19 @@ Describe 'WindowsOpenSshServerStartup module' {
         }
 
         $script:StopDependencies = @{
-            GetCommand = {
+            GetCommand          = {
                 param($Name)
                 if ($Name -eq 'sudo') { return $null }
                 @{ Name = $Name }
             }
-            GetService = { param($Name) $null = $Name; [pscustomobject]@{ Status = 'Stopped' } }
-            StopService = { param($Name, $Force) $null = $Name; $null = $Force }
+            GetService          = { param($Name) $null = $Name; [pscustomobject]@{ Status = 'Stopped' } }
+            StopService         = { param($Name, $Force) $null = $Name; $null = $Force }
             GetNetTcpConnection = { param($Port) $null = $Port; @() }
-            GetProcess = { param($Id) $null = $Id; [pscustomobject]@{ ProcessName = 'sshd' } }
-            IsAdmin = { $true }
-            Elevate = { param($ExePath, $ArgumentList) $null = $ExePath; $null = $ArgumentList }
-            RunSudo = { param($ExePath, $ArgumentList) $null = $ExePath; $null = $ArgumentList }
+            GetProcess          = { param($Id) $null = $Id; [pscustomobject]@{ ProcessName = 'sshd' } }
+            IsAdmin             = { $true }
+            IsUserInteractive   = { $true }
+            Elevate             = { param($ExePath, $ArgumentList) $null = $ExePath; $null = $ArgumentList }
+            RunSudo             = { param($ExePath, $ArgumentList) $null = $ExePath; $null = $ArgumentList }
         }
     }
 
@@ -90,7 +92,7 @@ Describe 'WindowsOpenSshServerStartup module' {
 
     It 'runs Start-OpenSshServer with injected dependencies' {
         $result = Invoke-StartSilenced -Arguments @{
-            Quiet = $true
+            Quiet        = $true
             Dependencies = $script:StartDependencies
         }
         $result.status | Should -Be 'success'
@@ -118,7 +120,7 @@ Describe 'WindowsOpenSshServerStartup module' {
         $deps.NewFirewallRule = { param($DisplayName, $Port) $null = $DisplayName; $null = $Port }
 
         $result = Invoke-StartSilenced -Arguments @{
-            Yes = $true
+            Yes          = $true
             Dependencies = $deps
         }
         ($result.PSObject.Properties.Name) | Should -Contain 'status'
@@ -128,7 +130,7 @@ Describe 'WindowsOpenSshServerStartup module' {
 
     It 'returns full details when verbose is requested for Start-OpenSshServer' {
         $result = Invoke-StartSilenced -Arguments @{
-            Verbose = $true
+            Verbose      = $true
             Dependencies = $script:StartDependencies
         }
         ($result.PSObject.Properties.Name) | Should -Contain 'checks'
@@ -158,7 +160,7 @@ Describe 'WindowsOpenSshServerStartup module' {
         }
 
         $result = Invoke-StartSilenced -Arguments @{
-            Yes = $true
+            Yes          = $true
             Dependencies = $deps
         }
         $result | Should -Be $null
@@ -166,7 +168,7 @@ Describe 'WindowsOpenSshServerStartup module' {
 
     It 'runs Stop-OpenSshServer with injected dependencies' {
         $result = Invoke-StopSilenced -Arguments @{
-            Quiet = $true
+            Quiet        = $true
             Dependencies = $script:StopDependencies
         }
         $result.status | Should -Be 'success'
@@ -182,14 +184,15 @@ Describe 'WindowsOpenSshServerStartup module' {
     It 'returns a summary when stopping requires action for Stop-OpenSshServer' {
         $script:stopState = 'Running'
         $deps = @{
-            GetCommand = { param($Name) @{ Name = $Name } }
-            GetService = { param($Name) $null = $Name; [pscustomobject]@{ Status = $script:stopState } }
-            StopService = { param($Name, $Force) $null = $Name; $null = $Force; $script:stopState = 'Stopped' }
+            GetCommand          = { param($Name) @{ Name = $Name } }
+            GetService          = { param($Name) $null = $Name; [pscustomobject]@{ Status = $script:stopState } }
+            StopService         = { param($Name, $Force) $null = $Name; $null = $Force; $script:stopState = 'Stopped' }
             GetNetTcpConnection = { param($Port) $null = $Port; @() }
-            GetProcess = { param($Id) $null = $Id; [pscustomobject]@{ ProcessName = 'sshd' } }
-            IsAdmin = { $true }
-            Elevate = { param($ExePath, $ArgumentList) $null = $ExePath; $null = $ArgumentList }
-            RunSudo = { param($ExePath, $ArgumentList) $null = $ExePath; $null = $ArgumentList }
+            GetProcess          = { param($Id) $null = $Id; [pscustomobject]@{ ProcessName = 'sshd' } }
+            IsAdmin             = { $true }
+            IsUserInteractive   = { $true }
+            Elevate             = { param($ExePath, $ArgumentList) $null = $ExePath; $null = $ArgumentList }
+            RunSudo             = { param($ExePath, $ArgumentList) $null = $ExePath; $null = $ArgumentList }
         }
 
         $result = Invoke-StopSilenced -Arguments @{
@@ -202,7 +205,7 @@ Describe 'WindowsOpenSshServerStartup module' {
 
     It 'returns full details when verbose is requested for Stop-OpenSshServer' {
         $result = Invoke-StopSilenced -Arguments @{
-            Verbose = $true
+            Verbose      = $true
             Dependencies = $script:StopDependencies
         }
         ($result.PSObject.Properties.Name) | Should -Contain 'checks'
@@ -211,14 +214,15 @@ Describe 'WindowsOpenSshServerStartup module' {
 
     It 'suppresses summary output when sudo runs in the same terminal for Stop-OpenSshServer' {
         $deps = @{
-            GetCommand = { param($Name) if ($Name -eq 'sudo') { return @{ Name = 'sudo'; Source = 'C:\\Windows\\system32\\sudo.exe' } } @{ Name = $Name } }
-            GetService = { param($Name) $null = $Name; [pscustomobject]@{ Status = 'Running' } }
-            StopService = { param($Name, $Force) $null = $Name; $null = $Force }
+            GetCommand          = { param($Name) if ($Name -eq 'sudo') { return @{ Name = 'sudo'; Source = 'C:\\Windows\\system32\\sudo.exe' } } @{ Name = $Name } }
+            GetService          = { param($Name) $null = $Name; [pscustomobject]@{ Status = 'Running' } }
+            StopService         = { param($Name, $Force) $null = $Name; $null = $Force }
             GetNetTcpConnection = { param($Port) $null = $Port; @() }
-            GetProcess = { param($Id) $null = $Id; [pscustomobject]@{ ProcessName = 'sshd' } }
-            IsAdmin = { $false }
-            Elevate = { param($ExePath, $ArgumentList) $null = $ExePath; $null = $ArgumentList }
-            RunSudo = {
+            GetProcess          = { param($Id) $null = $Id; [pscustomobject]@{ ProcessName = 'sshd' } }
+            IsAdmin             = { $false }
+            IsUserInteractive   = { $true }
+            Elevate             = { param($ExePath, $ArgumentList) $null = $ExePath; $null = $ArgumentList }
+            RunSudo             = {
                 param($ExePath, $ArgumentList)
                 $null = $ExePath
                 $null = $ArgumentList
@@ -227,7 +231,7 @@ Describe 'WindowsOpenSshServerStartup module' {
         }
 
         $result = Invoke-StopSilenced -Arguments @{
-            Yes = $true
+            Yes          = $true
             Dependencies = $deps
         }
         $result | Should -Be $null
