@@ -78,6 +78,9 @@ Use `-Verbose` or `-Trace` to output full diagnostic details, or `-Json` for mac
 ## Development commands
 
 ```powershell
+# Verify (Lint + Test)
+.\scripts\verify.ps1
+
 # Lint
 .\scripts\lint.ps1
 
