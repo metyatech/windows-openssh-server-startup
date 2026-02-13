@@ -1,6 +1,7 @@
 # Changelog
 
-## 0.3.8 - 2026-02-06
+## 0.3.8 - 2026-02-13
+- Add `scripts/verify.ps1` for one-step linting and testing (AGENTS.md compliance).
 - Refactor `Confirm-AutoFix` to a shared private script.
 - Fix unit tests for non-interactive environments by injecting `IsInteractive` dependency.
 
