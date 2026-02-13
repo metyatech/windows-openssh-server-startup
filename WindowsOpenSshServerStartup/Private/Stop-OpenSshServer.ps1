@@ -151,7 +151,12 @@ function Invoke-OpenSshServerStop {
     }
 
     $result = Get-StopResult
-    $deps = if ($Dependencies) { $Dependencies } else { $script:OpenSshStopDependencies }
+    $deps = [hashtable]$script:OpenSshStopDependencies.Clone()
+    if ($Dependencies) {
+        foreach ($key in $Dependencies.Keys) {
+            $deps[$key] = $Dependencies[$key]
+        }
+    }
     $isWindowsPlatform = [System.Environment]::OSVersion.Platform -eq 'Win32NT'
 
     $null = $Yes
@@ -249,7 +254,7 @@ function Invoke-OpenSshServerStop {
         }
 
         $confirmMessage = "Administrator privileges required to $Reason. Relaunch as Administrator now?"
-        if (-not (Confirm-AutoFix -Message $confirmMessage -Yes:$Yes -IsInteractive $Dependencies.IsInteractive)) {
+        if (-not (Confirm-AutoFix -Message $confirmMessage -Yes:$Yes -IsInteractive $deps.IsInteractive)) {
             Register-Error -Id 'requires_admin' -Message "Administrator privileges required to $Reason." -Remediation 'Start PowerShell as Administrator and rerun.'
             return $false
         }

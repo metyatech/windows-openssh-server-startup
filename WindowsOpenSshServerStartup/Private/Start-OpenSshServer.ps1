@@ -167,7 +167,12 @@ function Invoke-OpenSshServerStartup {
     }
 
     $result = Get-StartupResult
-    $deps = if ($Dependencies) { $Dependencies } else { $script:OpenSshStartupDependencies }
+    $deps = [hashtable]$script:OpenSshStartupDependencies.Clone()
+    if ($Dependencies) {
+        foreach ($key in $Dependencies.Keys) {
+            $deps[$key] = $Dependencies[$key]
+        }
+    }
     $isWindowsPlatform = [System.Environment]::OSVersion.Platform -eq 'Win32NT'
 
     if (-not $PSBoundParameters.ContainsKey('AutoFix') -and -not $PSBoundParameters.ContainsKey('NoAutoFix')) {
@@ -275,7 +280,7 @@ function Invoke-OpenSshServerStartup {
         }
 
         $confirmMessage = "Administrator privileges required to $Reason. Relaunch as Administrator now?"
-        if (-not (Confirm-AutoFix -Message $confirmMessage -Yes:$Yes -IsInteractive $Dependencies.IsInteractive)) {
+        if (-not (Confirm-AutoFix -Message $confirmMessage -Yes:$Yes -IsInteractive $deps.IsInteractive)) {
             Register-Error -Id 'requires_admin' -Message "Administrator privileges required to $Reason." -Remediation 'Start PowerShell as Administrator and rerun.'
             return $false
         }
@@ -380,7 +385,7 @@ function Invoke-OpenSshServerStartup {
                 }
 
                 $confirmMessage = "Issue detected ($Id): $FailureMessage Apply automatic remediation now?"
-                if (-not (Confirm-AutoFix -Message $confirmMessage -Yes:$Yes -IsInteractive $Dependencies.IsInteractive)) {
+                if (-not (Confirm-AutoFix -Message $confirmMessage -Yes:$Yes -IsInteractive $deps.IsInteractive)) {
                     Register-Error -Id $Id -Message $FailureMessage -Remediation 'Rerun with -AutoFix -Yes to allow automatic remediation.'
                     throw 'AutoFixDeclined'
                 }

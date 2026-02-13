@@ -140,6 +140,17 @@ Describe 'Invoke-OpenSshServerStop' {
             ($result.errors | Select-Object -First 1).id | Should -Be 'requires_admin'
         }
 
+        It 'does not crash when IsInteractive dependency is omitted' {
+            $null = $script:CurrentDependencies.Remove('IsInteractive')
+            Mock Confirm-AutoFix { $false } -ParameterFilter { $IsInteractive -is [scriptblock] }
+            $result = Invoke-StopSilenced -Arguments @{
+                Quiet = $true
+                Dependencies = $script:CurrentDependencies
+            }
+            $result.status | Should -Be 'error'
+            ($result.errors | Select-Object -First 1).id | Should -Be 'requires_admin'
+        }
+
         It 'requests elevation when not elevated' {
             Mock Confirm-AutoFix { $true }
             $result = Invoke-StopSilenced -Arguments @{
