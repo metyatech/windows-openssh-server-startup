@@ -3,6 +3,7 @@ Set-StrictMode -Version Latest
 $moduleRoot = Split-Path -Parent $PSCommandPath
 
 . (Join-Path $moduleRoot 'Private\Output-OpenSshServerResult.ps1')
+. (Join-Path $moduleRoot 'Private\Confirm-AutoFix.ps1')
 . (Join-Path $moduleRoot 'Private\Start-OpenSshServer.ps1')
 . (Join-Path $moduleRoot 'Private\Stop-OpenSshServer.ps1')
 

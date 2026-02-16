@@ -43,6 +43,7 @@ Describe 'Invoke-OpenSshServerStartup' {
                 RepairWindowsCapability = { }
                 RunSshKeygen = { param($Path) $null = $Path }
                 IsAdmin = { $true }
+                IsInteractive = { $true }
                 Elevate = {
                     param($ExePath, $ArgumentList)
                     $script:ElevateArgs = @($ExePath) + $ArgumentList
@@ -76,10 +77,21 @@ Describe 'Invoke-OpenSshServerStartup' {
                 return $true
             }
             $script:CurrentDependencies.IsAdmin = { $false }
-            Mock Confirm-AutoFix { $false }
         }
 
         It 'attempts autofix by default' {
+            Mock Confirm-AutoFix { $false }
+            $result = Invoke-StartupSilenced -Arguments @{
+                Quiet = $true
+                Dependencies = $script:CurrentDependencies
+            }
+            $result.status | Should -Be 'error'
+            ($result.errors | Select-Object -First 1).id | Should -Be 'requires_admin'
+        }
+
+        It 'does not crash when IsInteractive dependency is omitted' {
+            $null = $script:CurrentDependencies.Remove('IsInteractive')
+            Mock Confirm-AutoFix { $false } -ParameterFilter { $IsInteractive -is [scriptblock] }
             $result = Invoke-StartupSilenced -Arguments @{
                 Quiet = $true
                 Dependencies = $script:CurrentDependencies
@@ -89,6 +101,7 @@ Describe 'Invoke-OpenSshServerStartup' {
         }
 
         It 'does not autofix when NoAutoFix is set' {
+            Mock Confirm-AutoFix { $false }
             $result = Invoke-StartupSilenced -Arguments @{
                 NoAutoFix = $true
                 Quiet = $true
@@ -155,15 +168,15 @@ Describe 'Invoke-OpenSshServerStartup' {
                 return $true
             }
             $script:CurrentDependencies.IsAdmin = { $true }
+        }
+
+        It 'returns an error when AutoFix is declined' {
             Mock Confirm-AutoFix {
                 param($Message, $Yes)
                 $script:CapturedConfirmMessage = $Message
                 $null = $Yes
                 $false
             }
-        }
-
-        It 'returns an error when AutoFix is declined' {
             $result = Invoke-StartupSilenced -Arguments @{
                 AutoFix = $true
                 Quiet = $true
@@ -174,6 +187,12 @@ Describe 'Invoke-OpenSshServerStartup' {
         }
 
         It 'uses a clear confirmation message' {
+            Mock Confirm-AutoFix {
+                param($Message, $Yes)
+                $script:CapturedConfirmMessage = $Message
+                $null = $Yes
+                $false
+            }
             $null = Invoke-StartupSilenced -Arguments @{
                 AutoFix = $true
                 Quiet = $true
@@ -182,6 +201,18 @@ Describe 'Invoke-OpenSshServerStartup' {
             $script:CapturedConfirmMessage | Should -Match 'Issue detected'
             $script:CapturedConfirmMessage | Should -Match 'Apply automatic remediation'
             $script:CapturedConfirmMessage | Should -Match 'openssh_binary'
+        }
+
+        It 'does not crash when IsInteractive dependency is omitted' {
+            $null = $script:CurrentDependencies.Remove('IsInteractive')
+            Mock Confirm-AutoFix { $false } -ParameterFilter { $IsInteractive -is [scriptblock] }
+            $result = Invoke-StartupSilenced -Arguments @{
+                AutoFix = $true
+                Quiet = $true
+                Dependencies = $script:CurrentDependencies
+            }
+            $result.status | Should -Be 'error'
+            ($result.errors | Select-Object -First 1).id | Should -Be 'openssh_binary'
         }
     }
 
@@ -250,11 +281,11 @@ Describe 'Confirm-AutoFix (Start)' {
 
     It 'treats empty input as yes' {
         Mock Read-Host { '' }
-        Confirm-AutoFix -Message 'Test' -Yes:$false | Should -BeTrue
+        Confirm-AutoFix -Message 'Test' -Yes:$false -IsInteractive { $true } | Should -BeTrue
     }
 
     It 'treats n input as no' {
         Mock Read-Host { 'n' }
-        Confirm-AutoFix -Message 'Test' -Yes:$false | Should -BeFalse
+        Confirm-AutoFix -Message 'Test' -Yes:$false -IsInteractive { $true } | Should -BeFalse
     }
 }

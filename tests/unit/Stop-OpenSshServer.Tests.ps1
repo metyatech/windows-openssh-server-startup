@@ -36,6 +36,7 @@ Describe 'Invoke-OpenSshServerStop' {
                 GetNetTcpConnection = { param($Port) $null = $Port; @() }
                 GetProcess = { param($Id) $null = $Id; [pscustomobject]@{ ProcessName = 'sshd' } }
                 IsAdmin = { $true }
+                IsInteractive = { $true }
                 Elevate = {
                     param($ExePath, $ArgumentList)
                     $script:ElevateArgs = @($ExePath) + $ArgumentList
@@ -139,6 +140,17 @@ Describe 'Invoke-OpenSshServerStop' {
             ($result.errors | Select-Object -First 1).id | Should -Be 'requires_admin'
         }
 
+        It 'does not crash when IsInteractive dependency is omitted' {
+            $null = $script:CurrentDependencies.Remove('IsInteractive')
+            Mock Confirm-AutoFix { $false } -ParameterFilter { $IsInteractive -is [scriptblock] }
+            $result = Invoke-StopSilenced -Arguments @{
+                Quiet = $true
+                Dependencies = $script:CurrentDependencies
+            }
+            $result.status | Should -Be 'error'
+            ($result.errors | Select-Object -First 1).id | Should -Be 'requires_admin'
+        }
+
         It 'requests elevation when not elevated' {
             Mock Confirm-AutoFix { $true }
             $result = Invoke-StopSilenced -Arguments @{
@@ -161,11 +173,11 @@ Describe 'Confirm-AutoFix (Stop)' {
 
     It 'treats empty input as yes' {
         Mock Read-Host { '' }
-        Confirm-AutoFix -Message 'Test' -Yes:$false | Should -BeTrue
+        Confirm-AutoFix -Message 'Test' -Yes:$false -IsInteractive { $true } | Should -BeTrue
     }
 
     It 'treats n input as no' {
         Mock Read-Host { 'n' }
-        Confirm-AutoFix -Message 'Test' -Yes:$false | Should -BeFalse
+        Confirm-AutoFix -Message 'Test' -Yes:$false -IsInteractive { $true } | Should -BeFalse
     }
 }
