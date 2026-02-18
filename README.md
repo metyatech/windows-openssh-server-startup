@@ -1,5 +1,7 @@
 # Windows OpenSSH Server Startup
 
+[CHANGELOG](CHANGELOG.md) | [CONTRIBUTING](CONTRIBUTING.md) | [LICENSE](LICENSE) | [SECURITY](SECURITY.md)
+
 ## Overview
 This repository provides a PowerShell script to validate and start the Windows OpenSSH Server service. It checks common failure points (installation, service configuration, host keys, firewall, port availability) and can optionally apply automatic remediation with confirmation. The script does not change the sshd startup type, so you can start it on demand each time.
 
@@ -68,6 +70,32 @@ Common options:
 # Force stop and verify sshd is no longer listening
 .\Stop-OpenSshServer.ps1 -Force -Port 22
 ```
+
+## Parameters
+
+### Start-OpenSshServer.ps1
+- `-AutoFix`: Enable automatic remediation for detected issues (prompts for each fix).
+- `-NoAutoFix`: Disable automatic remediation.
+- `-Yes` (Alias: `-Force`): Skip confirmation prompts (e.g., for elevation or fixes).
+- `-DryRun`: Preview changes without applying them.
+- `-Port <int>`: The TCP port for the OpenSSH Server (default: 22).
+- `-FirewallRuleName <string>`: The name of the firewall rule to check/create (default: 'OpenSSH-Server-In-TCP').
+- `-Json`: Output results in machine-readable JSON format.
+- `-Quiet`: Suppress the concise summary output.
+- `-Trace`: Output full diagnostic details including internal state transitions.
+- `-Version`: Show script version.
+- `-Help`: Show usage help.
+
+### Stop-OpenSshServer.ps1
+- `-Force`: Force stop the OpenSSH Server service and check for lingering listeners.
+- `-Yes`: Skip confirmation prompts.
+- `-DryRun`: Preview changes.
+- `-Port <int>`: The TCP port to check for lingering listeners (default: 22).
+- `-Json`: Output results in JSON format.
+- `-Quiet`: Suppress summary output.
+- `-Trace`: Output full diagnostic details.
+- `-Version`: Show version.
+- `-Help`: Show help.
 
 ## Output
 By default, the scripts return a concise summary (version, status, started/stopped, and a short message).
