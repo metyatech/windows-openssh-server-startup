@@ -9,6 +9,13 @@ if ([string]::IsNullOrWhiteSpace($apiKey)) {
 
 $env:DOTNET_CLI_UI_LANGUAGE = 'en-US'
 
+Write-Output "Running build to prepare artifacts..."
+$buildScript = Join-Path $PSScriptRoot 'build.ps1'
+& $buildScript
+if ($LASTEXITCODE -ne 0) {
+    throw "Build failed with exit code $LASTEXITCODE"
+}
+
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $moduleName = 'WindowsOpenSshServerStartup'
 $modulePath = Join-Path $repoRoot $moduleName

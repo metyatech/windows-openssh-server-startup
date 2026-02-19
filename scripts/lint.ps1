@@ -1,6 +1,6 @@
 Set-StrictMode -Version Latest
 
-$repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $paths = @(
     (Join-Path $repoRoot 'Start-OpenSshServer.ps1'),
     (Join-Path $repoRoot 'WindowsOpenSshServerStartup'),
@@ -13,9 +13,20 @@ if (-not (Get-Module -ListAvailable -Name PSScriptAnalyzer)) {
     exit 1
 }
 
-$results = foreach ($path in $paths) {
-    Invoke-ScriptAnalyzer -Path $path -Recurse -Severity @('Warning', 'Error')
+$settingsPath = Join-Path $repoRoot 'PSScriptAnalyzerSettings.psd1'
+$analyzerParams = @{
+    Recurse = $true
+    Severity = @('Warning', 'Error')
 }
+
+if (Test-Path $settingsPath) {
+    $analyzerParams['Settings'] = $settingsPath
+}
+
+$results = foreach ($path in $paths) {
+    Invoke-ScriptAnalyzer -Path $path @analyzerParams
+}
+
 if ($results) {
     $results | Format-Table
     exit 1
